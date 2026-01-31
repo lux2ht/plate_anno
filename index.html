@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plate Annotation Tool</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Plate Annotation Tool</h1>
+
+  <div class="top-panels">
+    <!-- Left: plate format selector + controls -->
+    <div class="panel panel-left">
+      <h2>Plate Setup</h2>
+      <label for="plate-format">Plate Format</label>
+      <select id="plate-format">
+        <option value="6">6-well</option>
+        <option value="12">12-well</option>
+        <option value="24">24-well</option>
+        <option value="48">48-well</option>
+        <option value="96" selected>96-well</option>
+        <option value="384">384-well</option>
+      </select>
+
+      <div class="plate-container" id="plate-container"></div>
+
+      <div class="button-row">
+        <button id="btn-export">Export CSV</button>
+        <button id="btn-clear">Clear All</button>
+      </div>
+    </div>
+
+    <!-- Right: annotation panel -->
+    <div class="panel panel-right">
+      <h2>Annotations</h2>
+      <div id="anno-panel">
+        <p class="placeholder">Click a well to annotate.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom: CSV preview -->
+  <div class="panel panel-bottom">
+    <h2>CSV Preview</h2>
+    <pre id="csv-preview">No annotations yet.</pre>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
