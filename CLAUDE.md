@@ -8,13 +8,12 @@ This file provides guidance for AI assistants working with the `plate_anno` repo
 
 ## Repository Status
 
-This is a newly initialized repository. As the project grows, this document should be updated to reflect:
-
-- Language(s) and framework(s) used
-- Directory structure and architecture
-- Build, test, and lint commands
-- Development workflow and conventions
-- Deployment process
+- **Stack:** Vanilla HTML + CSS + JavaScript (no build step, no dependencies)
+- **Architecture:** Single-page app, all client-side
+- **Entry point:** `index.html`
+- **Styles:** `style.css`
+- **Logic:** `app.js`
+- **Plan:** See `PLAN.md` for full implementation plan
 
 ## Development
 
