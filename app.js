@@ -124,6 +124,29 @@ document.addEventListener('keydown', (e) => {
       saveState();
     }
   }
+  // Arrow key navigation
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && selectedWells.size > 0) {
+    e.preventDefault();
+    const current = lastClickedWell || [...selectedWells][0];
+    const rIdx = ROW_LETTERS.indexOf(current[0]);
+    const cIdx = parseInt(current.slice(1), 10);
+    const { rows, cols } = PLATE_FORMATS[plateFormat];
+    let nr = rIdx, nc = cIdx;
+    if (e.key === 'ArrowUp') nr = Math.max(0, rIdx - 1);
+    if (e.key === 'ArrowDown') nr = Math.min(rows - 1, rIdx + 1);
+    if (e.key === 'ArrowLeft') nc = Math.max(1, cIdx - 1);
+    if (e.key === 'ArrowRight') nc = Math.min(cols, cIdx + 1);
+    const newWell = ROW_LETTERS[nr] + nc;
+    if (e.shiftKey) {
+      selectedWells.add(newWell);
+    } else {
+      selectedWells.clear();
+      selectedWells.add(newWell);
+    }
+    lastClickedWell = newWell;
+    renderPlate();
+    renderAnnoPanel();
+  }
 });
 
 // Drag selection
@@ -156,7 +179,7 @@ updateStats();
 function renderPlate() {
   const { rows, cols } = PLATE_FORMATS[plateFormat];
   const grid = document.createElement('div');
-  grid.className = 'plate-grid' + (plateFormat === 384 ? ' fmt-384' : '');
+  grid.className = 'plate-grid fmt-' + plateFormat;
   grid.style.gridTemplateColumns = `auto repeat(${cols}, 1fr)`;
 
   // Color map for color-by feature
@@ -206,11 +229,19 @@ function renderPlate() {
       }
 
       // Show well name inside for small plates
-      if (plateFormat <= 48) {
+      if (plateFormat <= 96) {
         const nameSpan = document.createElement('span');
         nameSpan.className = 'well-name';
         nameSpan.textContent = wellId;
         well.appendChild(nameSpan);
+      }
+
+      // Annotation preview inside well for small plates
+      if (plateFormat <= 48 && annos && annos.length > 0) {
+        const preview = document.createElement('span');
+        preview.className = 'anno-preview';
+        preview.textContent = annos.map(a => a.value || a.key).filter(Boolean).join(', ');
+        well.appendChild(preview);
       }
 
       if (selectedWells.has(wellId)) well.classList.add('selected');

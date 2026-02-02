@@ -389,6 +389,31 @@ button:disabled { opacity: 0.4; cursor: default; }
   pointer-events: none;
   z-index: 1;
 }
+/* Larger wells for small plates */
+.plate-grid.fmt-6 .well { width: 80px; height: 80px; }
+.plate-grid.fmt-6 .well-name { font-size: 0.75rem; }
+.plate-grid.fmt-12 .well { width: 65px; height: 65px; }
+.plate-grid.fmt-12 .well-name { font-size: 0.7rem; }
+.plate-grid.fmt-24 .well { width: 52px; height: 52px; }
+.plate-grid.fmt-48 .well { width: 44px; height: 44px; }
+
+/* Annotation preview inside wells */
+.well .anno-preview {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  right: 2px;
+  font-size: 0.45rem;
+  color: #666;
+  line-height: 1.1;
+  text-align: center;
+  pointer-events: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body.dark .well .anno-preview { color: #94a3b8; }
+.plate-grid.fmt-384 .well .anno-preview { display: none; }
 .plate-grid.fmt-384 .well-name { display: none; }
 
 /* --- Bottom header with view toggle --- */
