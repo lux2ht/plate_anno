@@ -4,15 +4,22 @@
 
 // ---- Constants ----
 const PLATE_FORMATS = {
-  6:   { rows: 2,  cols: 3  },
-  12:  { rows: 3,  cols: 4  },
-  24:  { rows: 4,  cols: 6  },
-  48:  { rows: 6,  cols: 8  },
-  96:  { rows: 8,  cols: 12 },
-  384: { rows: 16, cols: 24 },
+  6:    { rows: 2,  cols: 3  },
+  12:   { rows: 3,  cols: 4  },
+  24:   { rows: 4,  cols: 6  },
+  48:   { rows: 6,  cols: 8  },
+  96:   { rows: 8,  cols: 12 },
+  384:  { rows: 16, cols: 24 },
+  1536: { rows: 32, cols: 48 },
 };
 
-const ROW_LETTERS = 'ABCDEFGHIJKLMNOP';
+// Row labels: A-P for 384 and below, extended to AF for 1536
+const ROW_LETTERS = (() => {
+  const letters = [];
+  for (let i = 0; i < 26; i++) letters.push(String.fromCharCode(65 + i));
+  for (let i = 0; i < 6; i++) letters.push('A' + String.fromCharCode(65 + i));
+  return letters;
+})();
 
 const COLOR_PALETTE = [
   '#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6',
@@ -64,6 +71,7 @@ const fileLoad = document.getElementById('file-load');
 const templateSelect = document.getElementById('template-select');
 const contextMenu = document.getElementById('context-menu');
 const statsBar = document.getElementById('stats-bar');
+const rangeInput = document.getElementById('range-input');
 const btnDarkMode = document.getElementById('btn-dark-mode');
 const toastContainer = document.getElementById('toast-container');
 const btnViewCSV = document.getElementById('btn-view-csv');
@@ -92,6 +100,7 @@ btnCopy.addEventListener('click', copyWells);
 btnPaste.addEventListener('click', pasteWells);
 btnClear.addEventListener('click', clearAll);
 btnDarkMode.addEventListener('click', toggleDarkMode);
+rangeInput.addEventListener('keydown', onRangeInputKey);
 btnViewCSV.addEventListener('click', () => switchView('csv'));
 btnViewTable.addEventListener('click', () => switchView('table'));
 
@@ -128,8 +137,9 @@ document.addEventListener('keydown', (e) => {
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && selectedWells.size > 0) {
     e.preventDefault();
     const current = lastClickedWell || [...selectedWells][0];
-    const rIdx = ROW_LETTERS.indexOf(current[0]);
-    const cIdx = parseInt(current.slice(1), 10);
+    const pc = parseWellId(current);
+    const rIdx = ROW_LETTERS.indexOf(pc.row);
+    const cIdx = parseInt(pc.col, 10);
     const { rows, cols } = PLATE_FORMATS[plateFormat];
     let nr = rIdx, nc = cIdx;
     if (e.key === 'ArrowUp') nr = Math.max(0, rIdx - 1);
@@ -350,10 +360,11 @@ function selectAllWells() {
 }
 
 function getWellRange(fromId, toId) {
-  const r1 = ROW_LETTERS.indexOf(fromId[0]);
-  const c1 = parseInt(fromId.slice(1), 10);
-  const r2 = ROW_LETTERS.indexOf(toId[0]);
-  const c2 = parseInt(toId.slice(1), 10);
+  const pf = parseWellId(fromId), pt = parseWellId(toId);
+  const r1 = ROW_LETTERS.indexOf(pf.row);
+  const c1 = parseInt(pf.col, 10);
+  const r2 = ROW_LETTERS.indexOf(pt.row);
+  const c2 = parseInt(pt.col, 10);
   const rMin = Math.min(r1, r2), rMax = Math.max(r1, r2);
   const cMin = Math.min(c1, c2), cMax = Math.max(c1, c2);
   const wells = [];
@@ -966,8 +977,7 @@ function buildCSV() {
   const lines = ['Well,Row,Column,AnnotationKey,AnnotationValue'];
   const wellIds = Object.keys(annotations).sort(sortWellIds);
   for (const wellId of wellIds) {
-    const row = wellId[0];
-    const col = wellId.slice(1);
+    const { row, col } = parseWellId(wellId);
     for (const anno of annotations[wellId]) {
       lines.push([wellId, row, col, csvEscape(anno.key), csvEscape(anno.value)].join(','));
     }
@@ -1074,8 +1084,9 @@ function parseCSVLine(line) {
 function autoDetectFormat() {
   let maxRow = 0, maxCol = 0;
   for (const wid of Object.keys(annotations)) {
-    const r = ROW_LETTERS.indexOf(wid[0]);
-    const c = parseInt(wid.slice(1), 10);
+    const p = parseWellId(wid);
+    const r = ROW_LETTERS.indexOf(p.row);
+    const c = parseInt(p.col, 10);
     if (r > maxRow) maxRow = r;
     if (c > maxCol) maxCol = c;
   }
@@ -1164,10 +1175,17 @@ function csvEscape(s) {
   return s;
 }
 
+function parseWellId(wellId) {
+  const match = wellId.match(/^([A-Z]+)(\d+)$/);
+  if (!match) return { row: wellId[0], col: wellId.slice(1) };
+  return { row: match[1], col: match[2] };
+}
+
 function sortWellIds(a, b) {
-  const ra = a[0], rb = b[0];
-  const ca = parseInt(a.slice(1), 10), cb = parseInt(b.slice(1), 10);
-  if (ra !== rb) return ra < rb ? -1 : 1;
+  const pa = parseWellId(a), pb = parseWellId(b);
+  const ra = ROW_LETTERS.indexOf(pa.row), rb = ROW_LETTERS.indexOf(pb.row);
+  const ca = parseInt(pa.col, 10), cb = parseInt(pb.col, 10);
+  if (ra !== rb) return ra - rb;
   return ca - cb;
 }
 
@@ -1214,10 +1232,10 @@ function onContextAction(action) {
       fillDown();
       break;
     case 'select-row':
-      if (contextWell) selectRow(contextWell[0], { ctrlKey: false, metaKey: false });
+      if (contextWell) { const p = parseWellId(contextWell); selectRow(p.row, { ctrlKey: false, metaKey: false }); }
       break;
     case 'select-col':
-      if (contextWell) selectColumn(parseInt(contextWell.slice(1), 10), { ctrlKey: false, metaKey: false });
+      if (contextWell) { const p = parseWellId(contextWell); selectColumn(parseInt(p.col, 10), { ctrlKey: false, metaKey: false }); }
       break;
     case 'select-all':
       selectAllWells();
@@ -1246,12 +1264,13 @@ function fillRight() {
   if (!annotations[source] || annotations[source].length === 0) return;
 
   pushUndo();
-  const sourceRow = source[0];
-  const sourceCol = parseInt(source.slice(1), 10);
+  const sp = parseWellId(source);
+  const sourceRowIdx = ROW_LETTERS.indexOf(sp.row);
+  const sourceCol = parseInt(sp.col, 10);
   const { cols } = PLATE_FORMATS[plateFormat];
 
   for (let c = sourceCol + 1; c <= cols; c++) {
-    const targetId = sourceRow + c;
+    const targetId = ROW_LETTERS[sourceRowIdx] + c;
     if (!annotations[targetId]) annotations[targetId] = [];
     for (const a of annotations[source]) {
       annotations[targetId].push({ key: a.key, value: a.value });
@@ -1271,8 +1290,9 @@ function fillDown() {
   if (!annotations[source] || annotations[source].length === 0) return;
 
   pushUndo();
-  const sourceRowIdx = ROW_LETTERS.indexOf(source[0]);
-  const sourceCol = parseInt(source.slice(1), 10);
+  const spd = parseWellId(source);
+  const sourceRowIdx = ROW_LETTERS.indexOf(spd.row);
+  const sourceCol = parseInt(spd.col, 10);
   const { rows } = PLATE_FORMATS[plateFormat];
 
   for (let r = sourceRowIdx + 1; r < rows; r++) {
@@ -1518,12 +1538,43 @@ function renderTableView() {
 
   let html = '<table><thead><tr><th>Well</th><th>Row</th><th>Column</th><th>Key</th><th>Value</th></tr></thead><tbody>';
   for (const wellId of wellIds) {
-    const row = wellId[0];
-    const col = wellId.slice(1);
+    const { row, col } = parseWellId(wellId);
     for (const anno of annotations[wellId]) {
-      html += `<tr><td>${escapeHTML(wellId)}</td><td>${row}</td><td>${col}</td><td>${escapeHTML(anno.key)}</td><td>${escapeHTML(anno.value)}</td></tr>`;
+      html += `<tr><td>${escapeHTML(wellId)}</td><td>${escapeHTML(row)}</td><td>${col}</td><td>${escapeHTML(anno.key)}</td><td>${escapeHTML(anno.value)}</td></tr>`;
     }
   }
   html += '</tbody></table>';
   tableView.innerHTML = html;
+}
+
+// ============================================================
+// Range input (e.g. "A1:C6", "A1,B2,C3", "A1:C6,D1:D12")
+// ============================================================
+function onRangeInputKey(e) {
+  if (e.key !== 'Enter') return;
+  const input = rangeInput.value.trim().toUpperCase();
+  if (!input) return;
+
+  selectedWells.clear();
+  const parts = input.split(',').map(s => s.trim()).filter(Boolean);
+
+  for (const part of parts) {
+    if (part.includes(':')) {
+      const [from, to] = part.split(':').map(s => s.trim());
+      if (from && to) {
+        const range = getWellRange(from, to);
+        for (const w of range) selectedWells.add(w);
+      }
+    } else {
+      selectedWells.add(part);
+    }
+  }
+
+  if (selectedWells.size > 0) {
+    lastClickedWell = [...selectedWells][0];
+    showToast(`Selected ${selectedWells.size} well(s)`, 'info');
+  }
+  rangeInput.value = '';
+  renderPlate();
+  renderAnnoPanel();
 }
