@@ -140,6 +140,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 #btn-export { background: #2563eb; color: #fff; border-color: #2563eb; }
 #btn-export:hover { background: #1d4ed8; }
 
+#btn-export-wide { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+#btn-export-wide:hover { background: #1e40af; }
 #btn-import { background: #7c3aed; color: #fff; border-color: #7c3aed; }
 #btn-import:hover { background: #6d28d9; }
 
@@ -367,6 +369,10 @@ body.dark .plate-grid { border-color: #475569; background: #0f172a; }
   height: 12px;
   border-radius: 50%;
   border: 1px solid #ccc;
+}
+.legend-count {
+  font-size: 0.75rem;
+  color: #888;
 }
 
 /* --- Context menu --- */

@@ -66,7 +66,8 @@
       <div class="plate-container" id="plate-container"></div>
 
       <div class="button-row">
-        <button id="btn-export" title="Download CSV file">Export CSV</button>
+        <button id="btn-export" title="Download CSV (long format)">Export CSV</button>
+        <button id="btn-export-wide" title="Download CSV (wide format)">Export Wide</button>
         <button id="btn-import" title="Import annotations from CSV">Import CSV</button>
         <button id="btn-save" title="Save full project as JSON">Save Project</button>
         <button id="btn-load" title="Load project from JSON">Load Project</button>
@@ -75,6 +76,9 @@
         <button id="btn-copy" title="Copy selected wells (Ctrl+C)" disabled>Copy</button>
         <button id="btn-paste" title="Paste to selected wells (Ctrl+V)" disabled>Paste</button>
         <button id="btn-clear" title="Clear all annotations">Clear All</button>
+        <button id="btn-rotate" title="Rotate annotations 90° clockwise">Rotate 90°</button>
+        <button id="btn-mirror-h" title="Mirror annotations horizontally">Mirror H</button>
+        <button id="btn-mirror-v" title="Mirror annotations vertically">Mirror V</button>
       </div>
       <input type="file" id="file-import" accept=".csv" style="display:none">
       <input type="file" id="file-load" accept=".json" style="display:none">
@@ -103,7 +107,8 @@
     <div class="bottom-header">
       <h2>Data View</h2>
       <div class="view-toggle">
-        <button id="btn-view-csv" class="view-btn active">CSV</button>
+        <button id="btn-view-csv" class="view-btn active">CSV (Long)</button>
+        <button id="btn-view-wide" class="view-btn">CSV (Wide)</button>
         <button id="btn-view-table" class="view-btn">Table</button>
       </div>
     </div>
@@ -150,6 +155,8 @@
           <tr><td><kbd>Delete</kbd></td><td>Clear selected wells</td></tr>
           <tr><td><kbd>Arrow keys</kbd></td><td>Navigate wells</td></tr>
           <tr><td><kbd>Shift+Arrow</kbd></td><td>Extend selection</td></tr>
+          <tr><td><kbd>Tab</kbd></td><td>Next well</td></tr>
+          <tr><td><kbd>Shift+Tab</kbd></td><td>Previous well</td></tr>
           <tr><td><kbd>Ctrl+Click</kbd></td><td>Toggle well selection</td></tr>
           <tr><td><kbd>Shift+Click</kbd></td><td>Select range</td></tr>
           <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>

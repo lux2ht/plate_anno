@@ -80,8 +80,13 @@ const hoverTooltip = document.getElementById('hover-tooltip');
 const plateNameInput = document.getElementById('plate-name');
 const toastContainer = document.getElementById('toast-container');
 const btnViewCSV = document.getElementById('btn-view-csv');
+const btnViewWide = document.getElementById('btn-view-wide');
 const btnViewTable = document.getElementById('btn-view-table');
+const btnExportWide = document.getElementById('btn-export-wide');
 const tableView = document.getElementById('table-view');
+const btnRotate = document.getElementById('btn-rotate');
+const btnMirrorH = document.getElementById('btn-mirror-h');
+const btnMirrorV = document.getElementById('btn-mirror-v');
 
 // Context menu state
 let contextWell = null;
@@ -111,7 +116,12 @@ helpModal.addEventListener('click', (e) => { if (e.target === helpModal) helpMod
 rangeInput.addEventListener('keydown', onRangeInputKey);
 plateNameInput.addEventListener('input', saveState);
 btnViewCSV.addEventListener('click', () => switchView('csv'));
+btnViewWide.addEventListener('click', () => switchView('wide'));
 btnViewTable.addEventListener('click', () => switchView('table'));
+btnExportWide.addEventListener('click', exportWideCSV);
+btnRotate.addEventListener('click', rotatePlate90);
+btnMirrorH.addEventListener('click', mirrorPlateH);
+btnMirrorV.addEventListener('click', mirrorPlateV);
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
@@ -144,6 +154,29 @@ document.addEventListener('keydown', (e) => {
       refreshCSVPreview();
       saveState();
     }
+  }
+  // Tab navigation between wells (next/prev in reading order)
+  if (e.key === 'Tab' && selectedWells.size > 0) {
+    e.preventDefault();
+    const current = lastClickedWell || [...selectedWells][0];
+    const pc = parseWellId(current);
+    const rIdx = ROW_LETTERS.indexOf(pc.row);
+    const cIdx = parseInt(pc.col, 10);
+    const { rows, cols } = PLATE_FORMATS[plateFormat];
+    let nr = rIdx, nc = cIdx;
+    if (e.shiftKey) {
+      nc--; if (nc < 1) { nc = cols; nr--; }
+      if (nr < 0) { nr = rows - 1; nc = cols; }
+    } else {
+      nc++; if (nc > cols) { nc = 1; nr++; }
+      if (nr >= rows) { nr = 0; nc = 1; }
+    }
+    const newWell = ROW_LETTERS[nr] + nc;
+    selectedWells.clear();
+    selectedWells.add(newWell);
+    lastClickedWell = newWell;
+    renderPlate();
+    renderAnnoPanel();
   }
   // Arrow key navigation
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && selectedWells.size > 0) {
@@ -816,12 +849,21 @@ function buildColorMap() {
 function renderColorLegend(colorMap) {
   const legend = colorMap._legend;
   if (!legend || Object.keys(legend).length === 0) return;
+  // Count wells per value
+  const counts = {};
+  for (const [wid, color] of Object.entries(colorMap)) {
+    if (wid === '_legend') continue;
+    for (const [val, c] of Object.entries(legend)) {
+      if (c === color) { counts[val] = (counts[val] || 0) + 1; break; }
+    }
+  }
   const div = document.createElement('div');
   div.className = 'color-legend';
   for (const [val, color] of Object.entries(legend)) {
     const item = document.createElement('span');
     item.className = 'color-legend-item';
-    item.innerHTML = `<span class="color-legend-swatch" style="background:${color}"></span>${escapeHTML(val)}`;
+    const count = counts[val] || 0;
+    item.innerHTML = `<span class="color-legend-swatch" style="background:${color}"></span>${escapeHTML(val)} <span class="legend-count">(${count})</span>`;
     div.appendChild(item);
   }
   plateContainer.appendChild(div);
@@ -993,8 +1035,37 @@ function buildCSV() {
 
 function refreshCSVPreview() {
   const hasData = Object.keys(annotations).some(k => annotations[k].length > 0);
-  csvPreview.textContent = hasData ? buildCSV() : 'No annotations yet.';
+  if (currentView === 'wide') {
+    csvPreview.textContent = hasData ? buildWideCSV() : 'No annotations yet.';
+  } else {
+    csvPreview.textContent = hasData ? buildCSV() : 'No annotations yet.';
+  }
   if (currentView === 'table') renderTableView();
+}
+
+function buildWideCSV() {
+  const wellIds = Object.keys(annotations).sort(sortWellIds);
+  // Collect all unique annotation keys
+  const allKeys = new Set();
+  for (const wid of wellIds) {
+    for (const anno of annotations[wid]) {
+      if (anno.key) allKeys.add(anno.key);
+    }
+  }
+  const keyList = [...allKeys].sort();
+  const header = ['Well', 'Row', 'Column', ...keyList.map(k => csvEscape(k))];
+  const lines = [header.join(',')];
+  for (const wellId of wellIds) {
+    if (!annotations[wellId].length) continue;
+    const { row, col } = parseWellId(wellId);
+    const valMap = {};
+    for (const anno of annotations[wellId]) {
+      if (anno.key) valMap[anno.key] = anno.value;
+    }
+    const vals = keyList.map(k => csvEscape(valMap[k] || ''));
+    lines.push([wellId, row, col, ...vals].join(','));
+  }
+  return lines.join('\n');
 }
 
 function exportCSV() {
@@ -1008,6 +1079,19 @@ function exportCSV() {
   a.click();
   URL.revokeObjectURL(url);
   showToast('CSV exported', 'success');
+}
+
+function exportWideCSV() {
+  const csv = buildWideCSV();
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const name = plateNameInput.value.trim() || `plate_${plateFormat}`;
+  a.download = `${name.replace(/[^a-zA-Z0-9_-]/g, '_')}_wide.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Wide CSV exported', 'success');
 }
 
 function importCSV(e) {
@@ -1511,6 +1595,80 @@ function templateCheckerboard(rows, cols) {
 }
 
 // ============================================================
+// Plate transforms (rotate / mirror)
+// ============================================================
+function rotatePlate90() {
+  const { rows, cols } = PLATE_FORMATS[plateFormat];
+  if (rows !== cols && rows !== cols) {
+    // Rotation maps (r,c) -> (c, rows-1-r) but well IDs stay within same plate dimensions
+  }
+  pushUndo();
+  const newAnnos = {};
+  for (const wid of Object.keys(annotations)) {
+    if (!annotations[wid].length) continue;
+    const { row, col } = parseWellId(wid);
+    const rIdx = ROW_LETTERS.indexOf(row);
+    const cIdx = parseInt(col, 10) - 1;
+    // 90° clockwise: new position = (cIdx, rows-1-rIdx)
+    const newR = cIdx;
+    const newC = (rows - 1 - rIdx);
+    if (newR < rows && newC < cols) {
+      const newWell = ROW_LETTERS[newR] + (newC + 1);
+      newAnnos[newWell] = JSON.parse(JSON.stringify(annotations[wid]));
+    }
+  }
+  annotations = newAnnos;
+  selectedWells.clear();
+  renderPlate();
+  renderAnnoPanel();
+  refreshCSVPreview();
+  saveState();
+  showToast('Rotated 90° clockwise', 'success');
+}
+
+function mirrorPlateH() {
+  const { cols } = PLATE_FORMATS[plateFormat];
+  pushUndo();
+  const newAnnos = {};
+  for (const wid of Object.keys(annotations)) {
+    if (!annotations[wid].length) continue;
+    const { row, col } = parseWellId(wid);
+    const cIdx = parseInt(col, 10);
+    const newC = cols + 1 - cIdx;
+    const newWell = row + newC;
+    newAnnos[newWell] = JSON.parse(JSON.stringify(annotations[wid]));
+  }
+  annotations = newAnnos;
+  selectedWells.clear();
+  renderPlate();
+  renderAnnoPanel();
+  refreshCSVPreview();
+  saveState();
+  showToast('Mirrored horizontally', 'success');
+}
+
+function mirrorPlateV() {
+  const { rows } = PLATE_FORMATS[plateFormat];
+  pushUndo();
+  const newAnnos = {};
+  for (const wid of Object.keys(annotations)) {
+    if (!annotations[wid].length) continue;
+    const { row, col } = parseWellId(wid);
+    const rIdx = ROW_LETTERS.indexOf(row);
+    const newR = rows - 1 - rIdx;
+    const newWell = ROW_LETTERS[newR] + col;
+    newAnnos[newWell] = JSON.parse(JSON.stringify(annotations[wid]));
+  }
+  annotations = newAnnos;
+  selectedWells.clear();
+  renderPlate();
+  renderAnnoPanel();
+  refreshCSVPreview();
+  saveState();
+  showToast('Mirrored vertically', 'success');
+}
+
+// ============================================================
 // Dark mode
 // ============================================================
 function toggleDarkMode() {
@@ -1544,10 +1702,12 @@ function showToast(message, type = 'info', duration = 2500) {
 function switchView(view) {
   currentView = view;
   btnViewCSV.classList.toggle('active', view === 'csv');
+  btnViewWide.classList.toggle('active', view === 'wide');
   btnViewTable.classList.toggle('active', view === 'table');
-  csvPreview.style.display = view === 'csv' ? '' : 'none';
+  csvPreview.style.display = (view === 'csv' || view === 'wide') ? '' : 'none';
   tableView.style.display = view === 'table' ? '' : 'none';
   if (view === 'table') renderTableView();
+  refreshCSVPreview();
 }
 
 function renderTableView() {
