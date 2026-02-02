@@ -159,7 +159,12 @@ button:disabled { opacity: 0.4; cursor: default; }
   display: inline-grid;
   gap: 2px;
   user-select: none;
+  padding: 8px;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  background: #fafafa;
 }
+body.dark .plate-grid { border-color: #475569; background: #0f172a; }
 
 .plate-grid .corner { /* top-left empty cell */ }
 

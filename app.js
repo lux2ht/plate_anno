@@ -289,6 +289,7 @@ function renderPlate() {
       well.addEventListener('contextmenu', (e) => onWellContextMenu(wellId, e));
       well.addEventListener('mouseenter', (e) => showHoverTooltip(wellId, e));
       well.addEventListener('mouseleave', hideHoverTooltip);
+      well.addEventListener('dblclick', (e) => onWellDoubleClick(wellId, e));
 
       grid.appendChild(well);
     }
@@ -1002,7 +1003,8 @@ function exportCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `plate_${plateFormat}_annotations.csv`;
+  const name = plateNameInput.value.trim() || `plate_${plateFormat}`;
+  a.download = `${name.replace(/[^a-zA-Z0-9_-]/g, '_')}_annotations.csv`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('CSV exported', 'success');
@@ -1249,6 +1251,9 @@ function onContextAction(action) {
     case 'select-all':
       selectAllWells();
       break;
+    case 'select-same':
+      selectSameAnnotations();
+      break;
     case 'clear-selected':
       if (selectedWells.size > 0) {
         pushUndo();
@@ -1326,13 +1331,17 @@ function updateStats() {
   const totalWells = rows * cols;
   const annotatedWells = Object.keys(annotations).filter(k => annotations[k].length > 0).length;
   const totalAnnotations = Object.values(annotations).reduce((sum, a) => sum + a.length, 0);
-  const uniqueKeys = getAllUsedKeys().length;
+  const keys = getAllUsedKeys();
 
-  statsBar.innerHTML = `
-    <span class="stat"><span class="stat-label">Wells:</span> ${annotatedWells}/${totalWells} annotated</span>
-    <span class="stat"><span class="stat-label">Annotations:</span> ${totalAnnotations} total</span>
-    <span class="stat"><span class="stat-label">Keys:</span> ${uniqueKeys} unique</span>
-  `;
+  let html = `
+    <span class="stat"><span class="stat-label">Wells:</span> ${annotatedWells}/${totalWells}</span>
+    <span class="stat"><span class="stat-label">Annotations:</span> ${totalAnnotations}</span>
+    <span class="stat"><span class="stat-label">Keys:</span> ${keys.length}`;
+  if (keys.length > 0 && keys.length <= 8) {
+    html += ` (${keys.join(', ')})`;
+  }
+  html += '</span>';
+  statsBar.innerHTML = html;
 }
 
 // ============================================================
@@ -1350,7 +1359,8 @@ function saveProject() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `plate_${plateFormat}_project.json`;
+  const pname = plateNameInput.value.trim() || `plate_${plateFormat}`;
+  a.download = `${pname.replace(/[^a-zA-Z0-9_-]/g, '_')}_project.json`;
   a.click();
   URL.revokeObjectURL(url);
   showToast('Project saved', 'success');
@@ -1586,6 +1596,58 @@ function onRangeInputKey(e) {
     showToast(`Selected ${selectedWells.size} well(s)`, 'info');
   }
   rangeInput.value = '';
+  renderPlate();
+  renderAnnoPanel();
+}
+
+// ============================================================
+// Double-click to quick-annotate
+// ============================================================
+function onWellDoubleClick(wellId, e) {
+  e.preventDefault();
+  selectedWells.clear();
+  selectedWells.add(wellId);
+  lastClickedWell = wellId;
+  if (!annotations[wellId]) annotations[wellId] = [];
+  if (annotations[wellId].length === 0) {
+    pushUndo();
+    annotations[wellId].push({ key: '', value: '' });
+  }
+  renderPlate();
+  renderAnnoPanel();
+  // Focus the first empty key input
+  setTimeout(() => {
+    const inputs = annoPanel.querySelectorAll('.autocomplete-wrapper input[data-field="key"]');
+    for (const inp of inputs) {
+      if (!inp.value) { inp.focus(); return; }
+    }
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }, 50);
+}
+
+// ============================================================
+// Select wells with same annotations
+// ============================================================
+function selectSameAnnotations() {
+  if (!contextWell || !annotations[contextWell] || annotations[contextWell].length === 0) return;
+  const sourceAnnos = annotations[contextWell];
+  const { rows, cols } = PLATE_FORMATS[plateFormat];
+  selectedWells.clear();
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 1; c <= cols; c++) {
+      const wellId = ROW_LETTERS[r] + c;
+      const annos = annotations[wellId];
+      if (!annos) continue;
+      // Check if this well has all the same key-value pairs
+      const matches = sourceAnnos.every(sa =>
+        annos.some(a => a.key === sa.key && a.value === sa.value)
+      );
+      if (matches) selectedWells.add(wellId);
+    }
+  }
+
+  showToast(`Selected ${selectedWells.size} well(s) with matching annotations`, 'info');
   renderPlate();
   renderAnnoPanel();
 }
