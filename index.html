@@ -12,30 +12,56 @@
   <div class="top-panels">
     <!-- Left: plate format selector + controls -->
     <div class="panel panel-left">
-      <h2>Plate Setup</h2>
-      <label for="plate-format">Plate Format</label>
-      <select id="plate-format">
-        <option value="6">6-well</option>
-        <option value="12">12-well</option>
-        <option value="24">24-well</option>
-        <option value="48">48-well</option>
-        <option value="96" selected>96-well</option>
-        <option value="384">384-well</option>
-      </select>
+      <div class="controls-bar">
+        <div class="control-group">
+          <label for="plate-format">Plate Format</label>
+          <select id="plate-format">
+            <option value="6">6-well</option>
+            <option value="12">12-well</option>
+            <option value="24">24-well</option>
+            <option value="48">48-well</option>
+            <option value="96" selected>96-well</option>
+            <option value="384">384-well</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="color-by">Color by</label>
+          <select id="color-by">
+            <option value="">None</option>
+          </select>
+        </div>
+        <div class="control-group search-group">
+          <label for="search-input">Search</label>
+          <input type="text" id="search-input" placeholder="Filter wells...">
+        </div>
+      </div>
 
+      <div class="selection-info" id="selection-info"></div>
       <div class="plate-container" id="plate-container"></div>
 
       <div class="button-row">
-        <button id="btn-export">Export CSV</button>
-        <button id="btn-clear">Clear All</button>
+        <button id="btn-export" title="Download CSV file">Export CSV</button>
+        <button id="btn-import" title="Import annotations from CSV">Import CSV</button>
+        <button id="btn-undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
+        <button id="btn-redo" title="Redo (Ctrl+Y)" disabled>Redo</button>
+        <button id="btn-copy" title="Copy selected wells (Ctrl+C)" disabled>Copy</button>
+        <button id="btn-paste" title="Paste to selected wells (Ctrl+V)" disabled>Paste</button>
+        <button id="btn-clear" title="Clear all annotations">Clear All</button>
       </div>
+      <input type="file" id="file-import" accept=".csv" style="display:none">
     </div>
 
     <!-- Right: annotation panel -->
     <div class="panel panel-right">
       <h2>Annotations</h2>
       <div id="anno-panel">
-        <p class="placeholder">Click a well to annotate.</p>
+        <p class="placeholder">Click a well to annotate.<br><br>
+          <strong>Tips:</strong><br>
+          Ctrl+Click to select multiple wells<br>
+          Shift+Click to select a range<br>
+          Click row/column headers to select entire rows/columns<br>
+          Drag to select a rectangle
+        </p>
       </div>
     </div>
   </div>

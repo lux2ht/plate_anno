@@ -32,13 +32,49 @@ h2 { font-size: 1rem; margin-bottom: 8px; }
 .panel-right {
   flex: 1 1 40%;
   min-width: 260px;
-  max-height: 520px;
+  max-height: 600px;
   overflow-y: auto;
 }
 
 .panel-bottom {
   max-height: 300px;
   overflow: auto;
+}
+
+/* --- Controls bar --- */
+.controls-bar {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.control-group label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.search-group input {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  width: 160px;
+}
+
+.selection-info {
+  font-size: 0.78rem;
+  color: #555;
+  margin-bottom: 4px;
+  min-height: 1.2em;
 }
 
 /* --- Controls --- */
@@ -49,27 +85,36 @@ select {
   font-size: 0.9rem;
   border: 1px solid #bbb;
   border-radius: 4px;
-  margin-bottom: 10px;
 }
 
 .button-row {
   margin-top: 10px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 button {
-  padding: 6px 14px;
-  font-size: 0.85rem;
+  padding: 6px 12px;
+  font-size: 0.8rem;
   border: 1px solid #bbb;
   border-radius: 4px;
   background: #fff;
   cursor: pointer;
+  transition: background 0.15s;
 }
-button:hover { background: #e8e8e8; }
+button:hover:not(:disabled) { background: #e8e8e8; }
+button:disabled { opacity: 0.4; cursor: default; }
 
 #btn-export { background: #2563eb; color: #fff; border-color: #2563eb; }
 #btn-export:hover { background: #1d4ed8; }
+
+#btn-import { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+#btn-import:hover { background: #6d28d9; }
+
+#btn-undo, #btn-redo { background: #f3f4f6; }
+
+#btn-copy, #btn-paste { background: #fef3c7; border-color: #f59e0b; }
 
 #btn-clear { background: #ef4444; color: #fff; border-color: #ef4444; }
 #btn-clear:hover { background: #dc2626; }
@@ -95,6 +140,14 @@ button:hover { background: #e8e8e8; }
   font-size: 0.7rem;
   font-weight: 600;
   color: #666;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+
+.plate-grid .col-label:hover,
+.plate-grid .row-label:hover {
+  background: #e0e7ff;
 }
 
 .well {
@@ -109,13 +162,16 @@ button:hover { background: #e8e8e8; }
   cursor: pointer;
   position: relative;
   background: #fff;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background 0.1s, border-color 0.1s, box-shadow 0.1s;
 }
 
 .well:hover { border-color: #2563eb; background: #eff6ff; }
-.well.selected { border-color: #2563eb; background: #dbeafe; }
+.well.selected { border-color: #2563eb; background: #dbeafe; box-shadow: 0 0 0 2px rgba(37,99,235,0.3); }
 .well.has-anno { background: #dcfce7; border-color: #86efac; }
-.well.has-anno.selected { background: #bbf7d0; border-color: #2563eb; }
+.well.has-anno.selected { background: #bbf7d0; border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.3); }
+
+.well.search-match { box-shadow: 0 0 0 3px #f59e0b; }
+.well.search-dim { opacity: 0.3; }
 
 .well .badge {
   position: absolute;
@@ -126,6 +182,16 @@ button:hover { background: #e8e8e8; }
   width: 14px; height: 14px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+
+/* Color-coded wells */
+.well .color-fill {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 /* smaller wells for 384 */
@@ -138,15 +204,37 @@ button:hover { background: #e8e8e8; }
 .plate-grid.fmt-384 .well .badge {
   width: 10px; height: 10px; font-size: 0.45rem; top: -3px; right: -3px;
 }
+.plate-grid.fmt-384 .well .color-fill { inset: 2px; }
 .plate-grid.fmt-384 .col-label,
 .plate-grid.fmt-384 .row-label { font-size: 0.55rem; }
 
+/* Drag selection rectangle */
+.drag-rect {
+  position: fixed;
+  border: 2px dashed #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+  pointer-events: none;
+  z-index: 1000;
+}
+
 /* --- Annotation panel --- */
-.placeholder { color: #999; font-style: italic; }
+.placeholder { color: #999; font-style: italic; font-size: 0.85rem; line-height: 1.6; }
 
 #anno-panel .well-header {
   font-size: 1.1rem;
   font-weight: 700;
+  margin-bottom: 8px;
+}
+
+#anno-panel .multi-header {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+#anno-panel .multi-note {
+  font-size: 0.78rem;
+  color: #666;
   margin-bottom: 8px;
 }
 
@@ -165,6 +253,12 @@ button:hover { background: #e8e8e8; }
   border-radius: 4px;
 }
 
+.anno-row input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+
 .anno-row button {
   padding: 2px 8px;
   font-size: 0.8rem;
@@ -176,10 +270,76 @@ button:hover { background: #e8e8e8; }
   margin-top: 4px;
 }
 
+/* Autocomplete dropdown */
+.autocomplete-wrapper {
+  position: relative;
+  flex: 1;
+}
+.autocomplete-wrapper input { width: 100%; }
+.autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.autocomplete-list div {
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.autocomplete-list div:hover,
+.autocomplete-list div.active {
+  background: #e0e7ff;
+}
+
+/* Color legend */
+.color-legend {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.75rem;
+}
+.color-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.color-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid #ccc;
+}
+
 /* --- CSV preview --- */
 #csv-preview {
   font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
   font-size: 0.78rem;
   white-space: pre;
   line-height: 1.4;
+}
+
+/* --- Responsive --- */
+@media (max-width: 800px) {
+  .top-panels { flex-direction: column; }
+  .panel-right { max-height: 400px; }
+}
+
+/* --- Print --- */
+@media print {
+  body { background: #fff; padding: 0; }
+  .button-row, .controls-bar, .panel-right, #selection-info { display: none; }
+  .panel { border: none; box-shadow: none; }
+  .top-panels { display: block; }
+  .panel-left { width: 100%; }
+  .panel-bottom { max-height: none; overflow: visible; }
+  h1 { font-size: 1.2rem; }
 }
