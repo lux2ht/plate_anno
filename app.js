@@ -30,6 +30,14 @@ const COLOR_PALETTE = [
 
 const STORAGE_KEY = 'plateAnno_state';
 
+// Common annotation key presets for biology experiments
+const PRESET_KEYS = [
+  'Treatment', 'Concentration', 'Cell Line', 'Replicate',
+  'Compound', 'Dose', 'Time Point', 'Condition',
+  'Control', 'Sample ID', 'Passage', 'Media',
+  'Inhibitor', 'Antibody', 'siRNA', 'MOI',
+];
+
 // ---- State ----
 let plateFormat = 96;
 let annotations = {}; // { "A1": [{ key: "", value: "" }, ...], ... }
@@ -87,6 +95,7 @@ const tableView = document.getElementById('table-view');
 const btnRotate = document.getElementById('btn-rotate');
 const btnMirrorH = document.getElementById('btn-mirror-h');
 const btnMirrorV = document.getElementById('btn-mirror-v');
+const includeEmptyCheckbox = document.getElementById('include-empty');
 
 // Context menu state
 let contextWell = null;
@@ -119,6 +128,7 @@ btnViewCSV.addEventListener('click', () => switchView('csv'));
 btnViewWide.addEventListener('click', () => switchView('wide'));
 btnViewTable.addEventListener('click', () => switchView('table'));
 btnExportWide.addEventListener('click', exportWideCSV);
+includeEmptyCheckbox.addEventListener('change', () => { refreshCSVPreview(); });
 btnRotate.addEventListener('click', rotatePlate90);
 btnMirrorH.addEventListener('click', mirrorPlateH);
 btnMirrorV.addEventListener('click', mirrorPlateV);
@@ -660,7 +670,7 @@ function updateWellVisual(wellId) {
 // Autocomplete for annotation keys
 // ============================================================
 function getAllUsedKeys() {
-  const keys = new Set();
+  const keys = new Set(PRESET_KEYS);
   for (const wid of Object.keys(annotations)) {
     for (const a of annotations[wid]) {
       if (a.key.trim()) keys.add(a.key.trim());
@@ -1021,33 +1031,51 @@ function onFormatChange() {
 // ============================================================
 // CSV build / export / import
 // ============================================================
+function getAllPlateWellIds() {
+  const { rows, cols } = PLATE_FORMATS[plateFormat];
+  const ids = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 1; c <= cols; c++) {
+      ids.push(ROW_LETTERS[r] + c);
+    }
+  }
+  return ids;
+}
+
 function buildCSV() {
   const lines = ['Well,Row,Column,AnnotationKey,AnnotationValue'];
-  const wellIds = Object.keys(annotations).sort(sortWellIds);
+  const includeEmpty = includeEmptyCheckbox.checked;
+  const wellIds = includeEmpty ? getAllPlateWellIds() : Object.keys(annotations).sort(sortWellIds);
   for (const wellId of wellIds) {
+    const annos = annotations[wellId] || [];
     const { row, col } = parseWellId(wellId);
-    for (const anno of annotations[wellId]) {
-      lines.push([wellId, row, col, csvEscape(anno.key), csvEscape(anno.value)].join(','));
+    if (annos.length === 0 && includeEmpty) {
+      lines.push([wellId, row, col, '', ''].join(','));
+    } else {
+      for (const anno of annos) {
+        lines.push([wellId, row, col, csvEscape(anno.key), csvEscape(anno.value)].join(','));
+      }
     }
   }
   return lines.join('\n');
 }
 
 function refreshCSVPreview() {
-  const hasData = Object.keys(annotations).some(k => annotations[k].length > 0);
+  const hasData = Object.keys(annotations).some(k => annotations[k].length > 0) || includeEmptyCheckbox.checked;
   if (currentView === 'wide') {
     csvPreview.textContent = hasData ? buildWideCSV() : 'No annotations yet.';
-  } else {
+  } else if (currentView === 'csv') {
     csvPreview.textContent = hasData ? buildCSV() : 'No annotations yet.';
   }
   if (currentView === 'table') renderTableView();
 }
 
 function buildWideCSV() {
-  const wellIds = Object.keys(annotations).sort(sortWellIds);
+  const annotatedIds = Object.keys(annotations).sort(sortWellIds);
+  const includeEmpty = includeEmptyCheckbox.checked;
   // Collect all unique annotation keys
   const allKeys = new Set();
-  for (const wid of wellIds) {
+  for (const wid of annotatedIds) {
     for (const anno of annotations[wid]) {
       if (anno.key) allKeys.add(anno.key);
     }
@@ -1055,11 +1083,13 @@ function buildWideCSV() {
   const keyList = [...allKeys].sort();
   const header = ['Well', 'Row', 'Column', ...keyList.map(k => csvEscape(k))];
   const lines = [header.join(',')];
+  const wellIds = includeEmpty ? getAllPlateWellIds() : annotatedIds;
   for (const wellId of wellIds) {
-    if (!annotations[wellId].length) continue;
+    const annos = annotations[wellId] || [];
+    if (!includeEmpty && !annos.length) continue;
     const { row, col } = parseWellId(wellId);
     const valMap = {};
-    for (const anno of annotations[wellId]) {
+    for (const anno of annos) {
       if (anno.key) valMap[anno.key] = anno.value;
     }
     const vals = keyList.map(k => csvEscape(valMap[k] || ''));
