@@ -408,6 +408,35 @@ function selectAllWells() {
   renderAnnoPanel();
 }
 
+function invertSelection() {
+  const { rows, cols } = PLATE_FORMATS[plateFormat];
+  const newSel = new Set();
+  for (let r = 0; r < rows; r++) {
+    for (let c = 1; c <= cols; c++) {
+      const wid = ROW_LETTERS[r] + c;
+      if (!selectedWells.has(wid)) newSel.add(wid);
+    }
+  }
+  selectedWells = newSel;
+  renderPlate();
+  renderAnnoPanel();
+}
+
+function selectByAnnotationState(hasAnnotations) {
+  const { rows, cols } = PLATE_FORMATS[plateFormat];
+  selectedWells.clear();
+  for (let r = 0; r < rows; r++) {
+    for (let c = 1; c <= cols; c++) {
+      const wid = ROW_LETTERS[r] + c;
+      const has = annotations[wid] && annotations[wid].length > 0;
+      if (has === hasAnnotations) selectedWells.add(wid);
+    }
+  }
+  renderPlate();
+  renderAnnoPanel();
+  showToast(`${selectedWells.size} wells selected`, 'info');
+}
+
 function getWellRange(fromId, toId) {
   const pf = parseWellId(fromId), pt = parseWellId(toId);
   const r1 = ROW_LETTERS.indexOf(pf.row);
@@ -1435,8 +1464,17 @@ function onContextAction(action) {
     case 'select-all':
       selectAllWells();
       break;
+    case 'invert-selection':
+      invertSelection();
+      break;
     case 'select-same':
       selectSameAnnotations();
+      break;
+    case 'select-empty':
+      selectByAnnotationState(false);
+      break;
+    case 'select-annotated':
+      selectByAnnotationState(true);
       break;
     case 'clear-selected':
       if (selectedWells.size > 0) {
@@ -1515,14 +1553,24 @@ function updateStats() {
   const totalWells = rows * cols;
   const annotatedWells = Object.keys(annotations).filter(k => annotations[k].length > 0).length;
   const totalAnnotations = Object.values(annotations).reduce((sum, a) => sum + a.length, 0);
-  const keys = getAllUsedKeys();
+  // Only show keys actually used in annotations (not presets)
+  const usedKeys = new Set();
+  for (const wid of Object.keys(annotations)) {
+    for (const a of annotations[wid]) {
+      if (a.key.trim()) usedKeys.add(a.key.trim());
+    }
+  }
+  const keyList = [...usedKeys].sort();
 
   let html = `
     <span class="stat"><span class="stat-label">Wells:</span> ${annotatedWells}/${totalWells}</span>
-    <span class="stat"><span class="stat-label">Annotations:</span> ${totalAnnotations}</span>
-    <span class="stat"><span class="stat-label">Keys:</span> ${keys.length}`;
-  if (keys.length > 0 && keys.length <= 8) {
-    html += ` (${keys.join(', ')})`;
+    <span class="stat"><span class="stat-label">Annotations:</span> ${totalAnnotations}</span>`;
+  if (selectedWells.size > 0) {
+    html += `<span class="stat"><span class="stat-label">Selected:</span> ${selectedWells.size}</span>`;
+  }
+  html += `<span class="stat"><span class="stat-label">Keys:</span> ${keyList.length}`;
+  if (keyList.length > 0 && keyList.length <= 8) {
+    html += ` (${keyList.join(', ')})`;
   }
   html += '</span>';
   statsBar.innerHTML = html;
