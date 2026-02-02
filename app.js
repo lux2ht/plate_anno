@@ -1423,6 +1423,9 @@ function onContextAction(action) {
     case 'dilution-series':
       showDilutionModal();
       break;
+    case 'assign-replicates':
+      assignReplicates();
+      break;
     case 'select-row':
       if (contextWell) { const p = parseWellId(contextWell); selectRow(p.row, { ctrlKey: false, metaKey: false }); }
       break;
@@ -1767,6 +1770,29 @@ function applyDilutionSeries() {
   saveState();
   updateColorByOptions();
   showToast(`Dilution series applied to ${wells.length} wells`, 'success');
+}
+
+// ============================================================
+// Assign replicates
+// ============================================================
+function assignReplicates() {
+  if (selectedWells.size === 0) {
+    showToast('Select wells first', 'error');
+    return;
+  }
+  const wells = [...selectedWells].sort(sortWellIds);
+  pushUndo();
+  for (let i = 0; i < wells.length; i++) {
+    if (!annotations[wells[i]]) annotations[wells[i]] = [];
+    annotations[wells[i]] = annotations[wells[i]].filter(a => a.key !== 'Replicate');
+    annotations[wells[i]].push({ key: 'Replicate', value: String(i + 1) });
+  }
+  renderPlate();
+  renderAnnoPanel();
+  refreshCSVPreview();
+  saveState();
+  updateColorByOptions();
+  showToast(`Replicates 1-${wells.length} assigned`, 'success');
 }
 
 // ============================================================
