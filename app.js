@@ -1356,6 +1356,9 @@ function onContextAction(action) {
     case 'fill-down':
       fillDown();
       break;
+    case 'dilution-series':
+      showDilutionModal();
+      break;
     case 'select-row':
       if (contextWell) { const p = parseWellId(contextWell); selectRow(p.row, { ctrlKey: false, metaKey: false }); }
       break;
@@ -1622,6 +1625,84 @@ function templateCheckerboard(rows, cols) {
       ];
     }
   }
+}
+
+// ============================================================
+// Dilution series
+// ============================================================
+const dilutionModal = document.getElementById('dilution-modal');
+const dilClose = document.getElementById('dilution-close');
+const dilKey = document.getElementById('dil-key');
+const dilStart = document.getElementById('dil-start');
+const dilFactor = document.getElementById('dil-factor');
+const dilUnit = document.getElementById('dil-unit');
+const dilDirection = document.getElementById('dil-direction');
+const dilPreview = document.getElementById('dil-preview');
+const dilApply = document.getElementById('dil-apply');
+
+dilClose.addEventListener('click', () => { dilutionModal.style.display = 'none'; });
+dilutionModal.addEventListener('click', (e) => { if (e.target === dilutionModal) dilutionModal.style.display = 'none'; });
+[dilStart, dilFactor, dilUnit].forEach(el => el.addEventListener('input', updateDilPreview));
+dilApply.addEventListener('click', applyDilutionSeries);
+
+function showDilutionModal() {
+  if (selectedWells.size < 2) {
+    showToast('Select at least 2 wells for a dilution series', 'error');
+    return;
+  }
+  dilutionModal.style.display = '';
+  updateDilPreview();
+}
+
+function updateDilPreview() {
+  const start = parseFloat(dilStart.value) || 0;
+  const factor = parseFloat(dilFactor.value) || 2;
+  const unit = dilUnit.value.trim();
+  const count = Math.min(selectedWells.size, 8);
+  const vals = [];
+  for (let i = 0; i < count; i++) {
+    const v = start / Math.pow(factor, i);
+    vals.push(Number.isInteger(v) ? v : v.toPrecision(4));
+  }
+  dilPreview.textContent = `Preview: ${vals.join(', ')}${selectedWells.size > 8 ? '...' : ''}${unit ? ' ' + unit : ''}`;
+}
+
+function applyDilutionSeries() {
+  const key = dilKey.value.trim() || 'Concentration';
+  const start = parseFloat(dilStart.value) || 100;
+  const factor = parseFloat(dilFactor.value) || 2;
+  const unit = dilUnit.value.trim();
+  const dir = dilDirection.value;
+
+  // Sort wells by direction
+  const wells = [...selectedWells].sort((a, b) => {
+    const pa = parseWellId(a), pb = parseWellId(b);
+    if (dir === 'right') {
+      const rd = ROW_LETTERS.indexOf(pa.row) - ROW_LETTERS.indexOf(pb.row);
+      return rd !== 0 ? rd : parseInt(pa.col) - parseInt(pb.col);
+    } else {
+      const cd = parseInt(pa.col) - parseInt(pb.col);
+      return cd !== 0 ? cd : ROW_LETTERS.indexOf(pa.row) - ROW_LETTERS.indexOf(pb.row);
+    }
+  });
+
+  pushUndo();
+  for (let i = 0; i < wells.length; i++) {
+    const val = start / Math.pow(factor, i);
+    const formatted = (Number.isInteger(val) ? val : parseFloat(val.toPrecision(4))) + (unit ? ' ' + unit : '');
+    if (!annotations[wells[i]]) annotations[wells[i]] = [];
+    // Remove existing annotation with same key
+    annotations[wells[i]] = annotations[wells[i]].filter(a => a.key !== key);
+    annotations[wells[i]].push({ key, value: formatted });
+  }
+
+  dilutionModal.style.display = 'none';
+  renderPlate();
+  renderAnnoPanel();
+  refreshCSVPreview();
+  saveState();
+  updateColorByOptions();
+  showToast(`Dilution series applied to ${wells.length} wells`, 'success');
 }
 
 // ============================================================

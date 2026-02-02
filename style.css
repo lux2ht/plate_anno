@@ -633,6 +633,12 @@ body.dark #plate-name:focus { background: #1e293b; }
   padding: 0 4px;
 }
 .modal-body { padding: 12px 16px 16px; }
+.form-row { margin-bottom: 10px; }
+.form-row label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 3px; }
+.form-row input, .form-row select { width: 100%; padding: 5px 8px; font-size: 0.85rem; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+.dil-preview { font-size: 0.8rem; color: #666; margin: 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.primary-btn { background: #3b82f6; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+.primary-btn:hover { background: #2563eb; }
 .shortcuts-table { width: 100%; border-collapse: collapse; }
 .shortcuts-table td { padding: 5px 8px; font-size: 0.82rem; }
 .shortcuts-table td:first-child { white-space: nowrap; }

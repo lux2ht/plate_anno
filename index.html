@@ -127,6 +127,7 @@
     <div class="ctx-separator"></div>
     <div class="ctx-item" data-action="fill-right">Fill Right</div>
     <div class="ctx-item" data-action="fill-down">Fill Down</div>
+    <div class="ctx-item" data-action="dilution-series">Dilution Series...</div>
     <div class="ctx-separator"></div>
     <div class="ctx-item" data-action="select-row">Select Row</div>
     <div class="ctx-item" data-action="select-col">Select Column</div>
@@ -164,6 +165,43 @@
           <tr><td><kbd>Shift+Click</kbd></td><td>Select range</td></tr>
           <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dilution series modal -->
+  <div class="modal-overlay" id="dilution-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Dilution Series</h2>
+        <button class="modal-close" id="dilution-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label for="dil-key">Annotation Key</label>
+          <input type="text" id="dil-key" value="Concentration" placeholder="e.g. Concentration">
+        </div>
+        <div class="form-row">
+          <label for="dil-start">Starting Value</label>
+          <input type="number" id="dil-start" value="100" step="any">
+        </div>
+        <div class="form-row">
+          <label for="dil-factor">Dilution Factor</label>
+          <input type="number" id="dil-factor" value="2" step="any" min="0.01">
+        </div>
+        <div class="form-row">
+          <label for="dil-unit">Unit (optional)</label>
+          <input type="text" id="dil-unit" value="uM" placeholder="e.g. uM, nM, mg/mL">
+        </div>
+        <div class="form-row">
+          <label for="dil-direction">Direction</label>
+          <select id="dil-direction">
+            <option value="right">Left to Right</option>
+            <option value="down">Top to Bottom</option>
+          </select>
+        </div>
+        <p class="dil-preview" id="dil-preview"></p>
+        <button id="dil-apply" class="primary-btn">Apply to Selected Wells</button>
       </div>
     </div>
   </div>
