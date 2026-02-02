@@ -578,6 +578,12 @@ body.dark .stats-bar { color: #94a3b8; }
 body.dark .anno-row input { background: #1e293b; color: #e0e0e0; border-color: #475569; }
 body.dark #plate-name { color: #e0e0e0; }
 body.dark #plate-name:focus { background: #1e293b; }
+body.dark .form-row input, body.dark .form-row select { background: #1e293b; color: #e0e0e0; border-color: #475569; }
+body.dark .dil-preview { color: #94a3b8; }
+body.dark .modal { background: #1e293b; }
+body.dark .modal-header { border-color: #334155; }
+body.dark .modal-header h2 { color: #e0e0e0; }
+body.dark .legend-count { color: #64748b; }
 
 /* --- Hover tooltip --- */
 .hover-tooltip {

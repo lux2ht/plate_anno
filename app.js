@@ -835,24 +835,88 @@ function onColorByChange() {
   renderPlate();
 }
 
+function extractNumeric(str) {
+  const m = str.match(/^[\s]*([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)/);
+  return m ? parseFloat(m[1]) : null;
+}
+
+function heatmapColor(t) {
+  // Blue (0) -> White (0.5) -> Red (1)
+  let r, g, b;
+  if (t <= 0.5) {
+    const s = t * 2;
+    r = Math.round(59 + s * (255 - 59));
+    g = Math.round(130 + s * (255 - 130));
+    b = Math.round(246 + s * (255 - 246));
+  } else {
+    const s = (t - 0.5) * 2;
+    r = Math.round(255);
+    g = Math.round(255 - s * (255 - 68));
+    b = Math.round(255 - s * (255 - 68));
+  }
+  return `rgb(${r},${g},${b})`;
+}
+
 function buildColorMap() {
   if (!colorByKey) return null;
-  const valueToColor = {};
-  let colorIdx = 0;
-  const map = {};
+
+  // Collect all values for the key
+  const wellValues = {};
   for (const wid of Object.keys(annotations)) {
     for (const a of annotations[wid]) {
       if (a.key === colorByKey && a.value.trim()) {
-        const val = a.value.trim();
-        if (!(val in valueToColor)) {
-          valueToColor[val] = COLOR_PALETTE[colorIdx % COLOR_PALETTE.length];
-          colorIdx++;
-        }
-        map[wid] = valueToColor[val];
+        wellValues[wid] = a.value.trim();
       }
     }
   }
-  map._legend = valueToColor;
+
+  // Check if values are numeric for heatmap
+  const numericVals = {};
+  let allNumeric = true;
+  for (const [wid, val] of Object.entries(wellValues)) {
+    const n = extractNumeric(val);
+    if (n !== null) {
+      numericVals[wid] = n;
+    } else {
+      allNumeric = false;
+      break;
+    }
+  }
+
+  const map = {};
+
+  if (allNumeric && Object.keys(numericVals).length > 0) {
+    // Heatmap mode
+    const nums = Object.values(numericVals);
+    const min = Math.min(...nums);
+    const max = Math.max(...nums);
+    const range = max - min || 1;
+    const legend = {};
+    for (const [wid, n] of Object.entries(numericVals)) {
+      const t = (n - min) / range;
+      map[wid] = heatmapColor(t);
+    }
+    // Create legend with min/mid/max
+    legend[`${min} (min)`] = heatmapColor(0);
+    if (range > 0) {
+      legend[`${parseFloat(((min + max) / 2).toPrecision(4))} (mid)`] = heatmapColor(0.5);
+      legend[`${max} (max)`] = heatmapColor(1);
+    }
+    map._legend = legend;
+  } else {
+    // Categorical mode
+    const valueToColor = {};
+    let colorIdx = 0;
+    for (const [wid, val] of Object.entries(wellValues)) {
+      if (!(val in valueToColor)) {
+        valueToColor[val] = COLOR_PALETTE[colorIdx % COLOR_PALETTE.length];
+        colorIdx++;
+      }
+      map[wid] = valueToColor[val];
+    }
+    map._legend = valueToColor;
+  }
+
   return map;
 }
 
