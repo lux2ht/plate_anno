@@ -7,7 +7,13 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Plate Annotation Tool</h1>
+  <div class="header-bar">
+    <h1>Plate Annotation Tool</h1>
+    <div class="header-actions">
+      <button id="btn-dark-mode" title="Toggle dark mode">Dark Mode</button>
+    </div>
+  </div>
+  <div id="toast-container"></div>
 
   <div class="top-panels">
     <!-- Left: plate format selector + controls -->
@@ -83,10 +89,17 @@
     </div>
   </div>
 
-  <!-- Bottom: CSV preview -->
+  <!-- Bottom: CSV preview / Table view -->
   <div class="panel panel-bottom">
-    <h2>CSV Preview</h2>
+    <div class="bottom-header">
+      <h2>Data View</h2>
+      <div class="view-toggle">
+        <button id="btn-view-csv" class="view-btn active">CSV</button>
+        <button id="btn-view-table" class="view-btn">Table</button>
+      </div>
+    </div>
     <pre id="csv-preview">No annotations yet.</pre>
+    <div id="table-view" style="display:none"></div>
   </div>
 
   <!-- Context menu -->

@@ -64,9 +64,15 @@ const fileLoad = document.getElementById('file-load');
 const templateSelect = document.getElementById('template-select');
 const contextMenu = document.getElementById('context-menu');
 const statsBar = document.getElementById('stats-bar');
+const btnDarkMode = document.getElementById('btn-dark-mode');
+const toastContainer = document.getElementById('toast-container');
+const btnViewCSV = document.getElementById('btn-view-csv');
+const btnViewTable = document.getElementById('btn-view-table');
+const tableView = document.getElementById('table-view');
 
 // Context menu state
 let contextWell = null;
+let currentView = 'csv'; // 'csv' or 'table'
 
 // ---- Init ----
 loadState();
@@ -85,6 +91,9 @@ btnRedo.addEventListener('click', redo);
 btnCopy.addEventListener('click', copyWells);
 btnPaste.addEventListener('click', pasteWells);
 btnClear.addEventListener('click', clearAll);
+btnDarkMode.addEventListener('click', toggleDarkMode);
+btnViewCSV.addEventListener('click', () => switchView('csv'));
+btnViewTable.addEventListener('click', () => switchView('table'));
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
@@ -130,6 +139,9 @@ contextMenu.querySelectorAll('.ctx-item').forEach(item => {
     hideContextMenu();
   });
 });
+
+// Restore dark mode preference
+if (localStorage.getItem('plateAnno_dark') === '1') document.body.classList.add('dark');
 
 renderPlate();
 renderAnnoPanel();
@@ -191,6 +203,14 @@ function renderPlate() {
         badge.className = 'badge';
         badge.textContent = annos.length;
         well.appendChild(badge);
+      }
+
+      // Show well name inside for small plates
+      if (plateFormat <= 48) {
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'well-name';
+        nameSpan.textContent = wellId;
+        well.appendChild(nameSpan);
       }
 
       if (selectedWells.has(wellId)) well.classList.add('selected');
@@ -462,20 +482,23 @@ function buildAnnoRowHTML(a, i) {
       <div class="autocomplete-wrapper">
         <input type="text" placeholder="Key" value="${escapeAttr(a.key)}" data-idx="${i}" data-field="key">
       </div>
-      <input type="text" placeholder="Value" value="${escapeAttr(a.value)}" data-idx="${i}" data-field="value">
+      <div class="autocomplete-wrapper">
+        <input type="text" placeholder="Value" value="${escapeAttr(a.value)}" data-idx="${i}" data-field="value">
+      </div>
       <button data-idx="${i}" class="btn-del-anno">&times;</button>
     </div>`;
 }
 
 function wireAnnoEvents() {
   // Key inputs with autocomplete
-  annoPanel.querySelectorAll('.autocomplete-wrapper input').forEach(inp => {
+  annoPanel.querySelectorAll('.autocomplete-wrapper input[data-field="key"]').forEach(inp => {
     inp.addEventListener('input', onAnnoInput);
     setupAutocomplete(inp);
   });
-  // Value inputs
-  annoPanel.querySelectorAll('.anno-row > input[data-field="value"]').forEach(inp => {
+  // Value inputs with value autocomplete
+  annoPanel.querySelectorAll('.autocomplete-wrapper input[data-field="value"]').forEach(inp => {
     inp.addEventListener('input', onAnnoInput);
+    setupValueAutocomplete(inp);
   });
   annoPanel.querySelectorAll('.btn-del-anno').forEach(btn => {
     btn.addEventListener('click', onDeleteAnno);
@@ -565,6 +588,18 @@ function getAllUsedKeys() {
   return [...keys].sort();
 }
 
+function getAllUsedValues(forKey) {
+  const vals = new Set();
+  for (const wid of Object.keys(annotations)) {
+    for (const a of annotations[wid]) {
+      if (a.value.trim() && (!forKey || a.key === forKey)) {
+        vals.add(a.value.trim());
+      }
+    }
+  }
+  return [...vals].sort();
+}
+
 function setupAutocomplete(input) {
   let listEl = null;
   let activeIdx = -1;
@@ -607,6 +642,69 @@ function setupAutocomplete(input) {
       div.addEventListener('mousedown', (e) => {
         e.preventDefault();
         input.value = k;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        hide();
+      });
+      listEl.appendChild(div);
+    }
+    input.parentElement.appendChild(listEl);
+  }
+
+  function hide() {
+    if (listEl) { listEl.remove(); listEl = null; }
+  }
+
+  function updateActive(items) {
+    items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
+  }
+}
+
+function setupValueAutocomplete(input) {
+  let listEl = null;
+  let activeIdx = -1;
+
+  input.addEventListener('focus', show);
+  input.addEventListener('input', show);
+  input.addEventListener('blur', () => setTimeout(hide, 150));
+  input.addEventListener('keydown', (e) => {
+    if (!listEl) return;
+    const items = listEl.querySelectorAll('div');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIdx = Math.min(activeIdx + 1, items.length - 1);
+      updateActive(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIdx = Math.max(activeIdx - 1, 0);
+      updateActive(items);
+    } else if (e.key === 'Enter' && activeIdx >= 0 && items[activeIdx]) {
+      e.preventDefault();
+      input.value = items[activeIdx].textContent;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      hide();
+    } else if (e.key === 'Escape') {
+      hide();
+    }
+  });
+
+  function show() {
+    hide();
+    const val = input.value.trim().toLowerCase();
+    // Get the corresponding key for this value input
+    const idx = parseInt(input.dataset.idx, 10);
+    const wellId = selectedWells.size === 1 ? [...selectedWells][0] : null;
+    const annoKey = wellId && annotations[wellId] && annotations[wellId][idx] ? annotations[wellId][idx].key : '';
+    const values = getAllUsedValues(annoKey).filter(v => v.toLowerCase().includes(val) && v !== input.value.trim());
+    if (values.length === 0) return;
+    listEl = document.createElement('div');
+    listEl.className = 'autocomplete-list';
+    activeIdx = -1;
+    for (const v of values) {
+      const div = document.createElement('div');
+      div.textContent = v;
+      div.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        input.value = v;
         input.dispatchEvent(new Event('input', { bubbles: true }));
         hide();
       });
@@ -739,6 +837,7 @@ function copyWells() {
     }
   }
   updateButtonStates();
+  showToast(`Copied ${Object.keys(clipboard).length} well(s)`, 'info');
 }
 
 function pasteWells() {
@@ -771,6 +870,7 @@ function pasteWells() {
   refreshCSVPreview();
   saveState();
   updateColorByOptions();
+  showToast(`Pasted to ${selectedWells.size} well(s)`, 'success');
 }
 
 // ============================================================
@@ -847,6 +947,7 @@ function buildCSV() {
 function refreshCSVPreview() {
   const hasData = Object.keys(annotations).some(k => annotations[k].length > 0);
   csvPreview.textContent = hasData ? buildCSV() : 'No annotations yet.';
+  if (currentView === 'table') renderTableView();
 }
 
 function exportCSV() {
@@ -858,6 +959,7 @@ function exportCSV() {
   a.download = `plate_${plateFormat}_annotations.csv`;
   a.click();
   URL.revokeObjectURL(url);
+  showToast('CSV exported', 'success');
 }
 
 function importCSV(e) {
@@ -1190,6 +1292,7 @@ function saveProject() {
   a.download = `plate_${plateFormat}_project.json`;
   a.click();
   URL.revokeObjectURL(url);
+  showToast('Project saved', 'success');
 }
 
 function loadProject(e) {
@@ -1213,8 +1316,9 @@ function loadProject(e) {
       refreshCSVPreview();
       saveState();
       updateColorByOptions();
+      showToast('Project loaded', 'success');
     } catch (err) {
-      alert('Error loading project: ' + err.message);
+      showToast('Error loading project: ' + err.message, 'error');
     }
   };
   reader.readAsText(file);
@@ -1332,4 +1436,63 @@ function templateCheckerboard(rows, cols) {
       ];
     }
   }
+}
+
+// ============================================================
+// Dark mode
+// ============================================================
+function toggleDarkMode() {
+  document.body.classList.toggle('dark');
+  const isDark = document.body.classList.contains('dark');
+  localStorage.setItem('plateAnno_dark', isDark ? '1' : '0');
+  showToast(isDark ? 'Dark mode enabled' : 'Light mode enabled', 'info');
+}
+
+// ============================================================
+// Toast notifications
+// ============================================================
+function showToast(message, type = 'info', duration = 2500) {
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  toastContainer.appendChild(toast);
+  // Trigger animation
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+// ============================================================
+// Table view
+// ============================================================
+function switchView(view) {
+  currentView = view;
+  btnViewCSV.classList.toggle('active', view === 'csv');
+  btnViewTable.classList.toggle('active', view === 'table');
+  csvPreview.style.display = view === 'csv' ? '' : 'none';
+  tableView.style.display = view === 'table' ? '' : 'none';
+  if (view === 'table') renderTableView();
+}
+
+function renderTableView() {
+  const wellIds = Object.keys(annotations).sort(sortWellIds);
+  if (wellIds.length === 0 || !wellIds.some(k => annotations[k].length > 0)) {
+    tableView.innerHTML = '<p style="color:#999;font-style:italic;font-size:0.85rem">No annotations yet.</p>';
+    return;
+  }
+
+  let html = '<table><thead><tr><th>Well</th><th>Row</th><th>Column</th><th>Key</th><th>Value</th></tr></thead><tbody>';
+  for (const wellId of wellIds) {
+    const row = wellId[0];
+    const col = wellId.slice(1);
+    for (const anno of annotations[wellId]) {
+      html += `<tr><td>${escapeHTML(wellId)}</td><td>${row}</td><td>${col}</td><td>${escapeHTML(anno.key)}</td><td>${escapeHTML(anno.value)}</td></tr>`;
+    }
+  }
+  html += '</tbody></table>';
+  tableView.innerHTML = html;
 }
