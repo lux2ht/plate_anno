@@ -8,8 +8,12 @@
 </head>
 <body>
   <div class="header-bar">
-    <h1>Plate Annotation Tool</h1>
+    <div class="header-left">
+      <h1>Plate Annotation Tool</h1>
+      <input type="text" id="plate-name" placeholder="Untitled Plate" title="Name this plate">
+    </div>
     <div class="header-actions">
+      <button id="btn-help" title="Keyboard shortcuts (?)">? Help</button>
       <button id="btn-dark-mode" title="Toggle dark mode">Dark Mode</button>
     </div>
   </div>
@@ -121,6 +125,35 @@
     <div class="ctx-item" data-action="select-all">Select All</div>
     <div class="ctx-separator"></div>
     <div class="ctx-item ctx-danger" data-action="clear-selected">Clear Selected</div>
+  </div>
+
+  <!-- Hover tooltip -->
+  <div class="hover-tooltip" id="hover-tooltip" style="display:none"></div>
+
+  <!-- Help modal -->
+  <div class="modal-overlay" id="help-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Keyboard Shortcuts</h2>
+        <button class="modal-close" id="help-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <table class="shortcuts-table">
+          <tr><td><kbd>Ctrl+Z</kbd></td><td>Undo</td></tr>
+          <tr><td><kbd>Ctrl+Y</kbd></td><td>Redo</td></tr>
+          <tr><td><kbd>Ctrl+C</kbd></td><td>Copy selected wells</td></tr>
+          <tr><td><kbd>Ctrl+V</kbd></td><td>Paste to selected wells</td></tr>
+          <tr><td><kbd>Ctrl+A</kbd></td><td>Select all wells</td></tr>
+          <tr><td><kbd>Escape</kbd></td><td>Deselect all</td></tr>
+          <tr><td><kbd>Delete</kbd></td><td>Clear selected wells</td></tr>
+          <tr><td><kbd>Arrow keys</kbd></td><td>Navigate wells</td></tr>
+          <tr><td><kbd>Shift+Arrow</kbd></td><td>Extend selection</td></tr>
+          <tr><td><kbd>Ctrl+Click</kbd></td><td>Toggle well selection</td></tr>
+          <tr><td><kbd>Shift+Click</kbd></td><td>Select range</td></tr>
+          <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
+        </table>
+      </div>
+    </div>
   </div>
 
   <script src="app.js"></script>

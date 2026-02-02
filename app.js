@@ -73,6 +73,11 @@ const contextMenu = document.getElementById('context-menu');
 const statsBar = document.getElementById('stats-bar');
 const rangeInput = document.getElementById('range-input');
 const btnDarkMode = document.getElementById('btn-dark-mode');
+const btnHelp = document.getElementById('btn-help');
+const helpModal = document.getElementById('help-modal');
+const helpClose = document.getElementById('help-close');
+const hoverTooltip = document.getElementById('hover-tooltip');
+const plateNameInput = document.getElementById('plate-name');
 const toastContainer = document.getElementById('toast-container');
 const btnViewCSV = document.getElementById('btn-view-csv');
 const btnViewTable = document.getElementById('btn-view-table');
@@ -100,7 +105,11 @@ btnCopy.addEventListener('click', copyWells);
 btnPaste.addEventListener('click', pasteWells);
 btnClear.addEventListener('click', clearAll);
 btnDarkMode.addEventListener('click', toggleDarkMode);
+btnHelp.addEventListener('click', () => { helpModal.style.display = ''; });
+helpClose.addEventListener('click', () => { helpModal.style.display = 'none'; });
+helpModal.addEventListener('click', (e) => { if (e.target === helpModal) helpModal.style.display = 'none'; });
 rangeInput.addEventListener('keydown', onRangeInputKey);
+plateNameInput.addEventListener('input', saveState);
 btnViewCSV.addEventListener('click', () => switchView('csv'));
 btnViewTable.addEventListener('click', () => switchView('table'));
 
@@ -115,6 +124,9 @@ document.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
     e.preventDefault();
     selectAllWells();
+  }
+  if (e.key === '?') {
+    helpModal.style.display = helpModal.style.display === 'none' ? '' : 'none';
   }
   if (e.key === 'Escape') {
     selectedWells.clear();
@@ -275,15 +287,8 @@ function renderPlate() {
 
       well.addEventListener('click', (e) => onWellClick(wellId, e));
       well.addEventListener('contextmenu', (e) => onWellContextMenu(wellId, e));
-
-      // Tooltip
-      if (annos && annos.length > 0) {
-        well.title = wellId + '\n' + annos
-          .map(a => (a.key || '?') + ' = ' + (a.value || '?'))
-          .join('\n');
-      } else {
-        well.title = wellId;
-      }
+      well.addEventListener('mouseenter', (e) => showHoverTooltip(wellId, e));
+      well.addEventListener('mouseleave', hideHoverTooltip);
 
       grid.appendChild(well);
     }
@@ -1128,6 +1133,7 @@ function saveState() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       plateFormat,
       annotations,
+      plateName: plateNameInput.value,
     }));
   } catch (e) { /* storage full or unavailable */ }
 }
@@ -1143,6 +1149,9 @@ function loadState() {
     }
     if (state.annotations) {
       annotations = state.annotations;
+    }
+    if (state.plateName) {
+      plateNameInput.value = state.plateName;
     }
   } catch (e) { /* corrupted state, ignore */ }
 }
@@ -1334,6 +1343,7 @@ function saveProject() {
     version: 1,
     plateFormat,
     annotations,
+    plateName: plateNameInput.value,
     timestamp: new Date().toISOString(),
   };
   const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
@@ -1360,6 +1370,7 @@ function loadProject(e) {
         formatSelect.value = plateFormat;
       }
       annotations = project.annotations;
+      if (project.plateName) plateNameInput.value = project.plateName;
       selectedWells.clear();
       lastClickedWell = null;
       renderPlate();
@@ -1577,4 +1588,37 @@ function onRangeInputKey(e) {
   rangeInput.value = '';
   renderPlate();
   renderAnnoPanel();
+}
+
+// ============================================================
+// Hover tooltip
+// ============================================================
+function showHoverTooltip(wellId, e) {
+  const annos = annotations[wellId];
+  let html = `<div class="tt-well">${escapeHTML(wellId)}</div>`;
+  if (annos && annos.length > 0) {
+    for (const a of annos) {
+      html += `<div class="tt-anno"><span class="tt-key">${escapeHTML(a.key || '?')}</span> = ${escapeHTML(a.value || '?')}</div>`;
+    }
+  } else {
+    html += '<div class="tt-anno" style="opacity:0.5">No annotations</div>';
+  }
+  hoverTooltip.innerHTML = html;
+  hoverTooltip.style.display = 'block';
+  positionTooltip(e);
+}
+
+function positionTooltip(e) {
+  const x = e.clientX + 12;
+  const y = e.clientY + 12;
+  hoverTooltip.style.left = x + 'px';
+  hoverTooltip.style.top = y + 'px';
+  // Adjust if offscreen
+  const rect = hoverTooltip.getBoundingClientRect();
+  if (rect.right > window.innerWidth) hoverTooltip.style.left = (e.clientX - rect.width - 8) + 'px';
+  if (rect.bottom > window.innerHeight) hoverTooltip.style.top = (e.clientY - rect.height - 8) + 'px';
+}
+
+function hideHoverTooltip() {
+  hoverTooltip.style.display = 'none';
 }
