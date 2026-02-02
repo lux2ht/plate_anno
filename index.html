@@ -34,6 +34,17 @@
           <label for="search-input">Search</label>
           <input type="text" id="search-input" placeholder="Filter wells...">
         </div>
+        <div class="control-group">
+          <label for="template-select">Template</label>
+          <select id="template-select">
+            <option value="">Load template...</option>
+            <option value="serial-dilution">Serial Dilution</option>
+            <option value="dose-response">Dose Response</option>
+            <option value="controls-border">Controls on Border</option>
+            <option value="quadrant">Quadrant Layout</option>
+            <option value="checkerboard">Checkerboard</option>
+          </select>
+        </div>
       </div>
 
       <div class="selection-info" id="selection-info"></div>
@@ -42,6 +53,8 @@
       <div class="button-row">
         <button id="btn-export" title="Download CSV file">Export CSV</button>
         <button id="btn-import" title="Import annotations from CSV">Import CSV</button>
+        <button id="btn-save" title="Save full project as JSON">Save Project</button>
+        <button id="btn-load" title="Load project from JSON">Load Project</button>
         <button id="btn-undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
         <button id="btn-redo" title="Redo (Ctrl+Y)" disabled>Redo</button>
         <button id="btn-copy" title="Copy selected wells (Ctrl+C)" disabled>Copy</button>
@@ -49,6 +62,9 @@
         <button id="btn-clear" title="Clear all annotations">Clear All</button>
       </div>
       <input type="file" id="file-import" accept=".csv" style="display:none">
+      <input type="file" id="file-load" accept=".json" style="display:none">
+
+      <div class="stats-bar" id="stats-bar"></div>
     </div>
 
     <!-- Right: annotation panel -->
@@ -60,7 +76,8 @@
           Ctrl+Click to select multiple wells<br>
           Shift+Click to select a range<br>
           Click row/column headers to select entire rows/columns<br>
-          Drag to select a rectangle
+          Drag to select a rectangle<br>
+          Right-click a well for more options
         </p>
       </div>
     </div>
@@ -70,6 +87,22 @@
   <div class="panel panel-bottom">
     <h2>CSV Preview</h2>
     <pre id="csv-preview">No annotations yet.</pre>
+  </div>
+
+  <!-- Context menu -->
+  <div class="context-menu" id="context-menu" style="display:none">
+    <div class="ctx-item" data-action="annotate">Annotate</div>
+    <div class="ctx-item" data-action="copy">Copy</div>
+    <div class="ctx-item" data-action="paste">Paste</div>
+    <div class="ctx-separator"></div>
+    <div class="ctx-item" data-action="fill-right">Fill Right</div>
+    <div class="ctx-item" data-action="fill-down">Fill Down</div>
+    <div class="ctx-separator"></div>
+    <div class="ctx-item" data-action="select-row">Select Row</div>
+    <div class="ctx-item" data-action="select-col">Select Column</div>
+    <div class="ctx-item" data-action="select-all">Select All</div>
+    <div class="ctx-separator"></div>
+    <div class="ctx-item ctx-danger" data-action="clear-selected">Clear Selected</div>
   </div>
 
   <script src="app.js"></script>

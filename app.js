@@ -58,15 +58,28 @@ const btnCopy = document.getElementById('btn-copy');
 const btnPaste = document.getElementById('btn-paste');
 const btnClear = document.getElementById('btn-clear');
 const fileImport = document.getElementById('file-import');
+const btnSave = document.getElementById('btn-save');
+const btnLoad = document.getElementById('btn-load');
+const fileLoad = document.getElementById('file-load');
+const templateSelect = document.getElementById('template-select');
+const contextMenu = document.getElementById('context-menu');
+const statsBar = document.getElementById('stats-bar');
+
+// Context menu state
+let contextWell = null;
 
 // ---- Init ----
 loadState();
 formatSelect.addEventListener('change', onFormatChange);
 colorBySelect.addEventListener('change', onColorByChange);
 searchInput.addEventListener('input', onSearchInput);
+templateSelect.addEventListener('change', onTemplateSelect);
 btnExport.addEventListener('click', exportCSV);
 btnImport.addEventListener('click', () => fileImport.click());
 fileImport.addEventListener('change', importCSV);
+btnSave.addEventListener('click', saveProject);
+btnLoad.addEventListener('click', () => fileLoad.click());
+fileLoad.addEventListener('change', loadProject);
 btnUndo.addEventListener('click', undo);
 btnRedo.addEventListener('click', redo);
 btnCopy.addEventListener('click', copyWells);
@@ -109,11 +122,21 @@ document.addEventListener('mousedown', onDragStart);
 document.addEventListener('mousemove', onDragMove);
 document.addEventListener('mouseup', onDragEnd);
 
+// Context menu
+document.addEventListener('click', hideContextMenu);
+contextMenu.querySelectorAll('.ctx-item').forEach(item => {
+  item.addEventListener('click', (e) => {
+    onContextAction(e.target.dataset.action);
+    hideContextMenu();
+  });
+});
+
 renderPlate();
 renderAnnoPanel();
 refreshCSVPreview();
 updateButtonStates();
 updateColorByOptions();
+updateStats();
 
 // ============================================================
 // Plate rendering
@@ -190,6 +213,7 @@ function renderPlate() {
       }
 
       well.addEventListener('click', (e) => onWellClick(wellId, e));
+      well.addEventListener('contextmenu', (e) => onWellContextMenu(wellId, e));
 
       // Tooltip
       if (annos && annos.length > 0) {
@@ -212,6 +236,7 @@ function renderPlate() {
 
   updateSelectionInfo();
   updateButtonStates();
+  updateStats();
 }
 
 // ============================================================
@@ -1011,4 +1036,300 @@ function sortWellIds(a, b) {
   const ca = parseInt(a.slice(1), 10), cb = parseInt(b.slice(1), 10);
   if (ra !== rb) return ra < rb ? -1 : 1;
   return ca - cb;
+}
+
+// ============================================================
+// Context menu
+// ============================================================
+function onWellContextMenu(wellId, e) {
+  e.preventDefault();
+  contextWell = wellId;
+  if (!selectedWells.has(wellId)) {
+    selectedWells.clear();
+    selectedWells.add(wellId);
+    renderPlate();
+    renderAnnoPanel();
+  }
+  contextMenu.style.display = 'block';
+  contextMenu.style.left = e.clientX + 'px';
+  contextMenu.style.top = e.clientY + 'px';
+  // Keep menu in viewport
+  const rect = contextMenu.getBoundingClientRect();
+  if (rect.right > window.innerWidth) contextMenu.style.left = (e.clientX - rect.width) + 'px';
+  if (rect.bottom > window.innerHeight) contextMenu.style.top = (e.clientY - rect.height) + 'px';
+}
+
+function hideContextMenu() {
+  contextMenu.style.display = 'none';
+}
+
+function onContextAction(action) {
+  switch (action) {
+    case 'annotate':
+      renderAnnoPanel();
+      break;
+    case 'copy':
+      copyWells();
+      break;
+    case 'paste':
+      pasteWells();
+      break;
+    case 'fill-right':
+      fillRight();
+      break;
+    case 'fill-down':
+      fillDown();
+      break;
+    case 'select-row':
+      if (contextWell) selectRow(contextWell[0], { ctrlKey: false, metaKey: false });
+      break;
+    case 'select-col':
+      if (contextWell) selectColumn(parseInt(contextWell.slice(1), 10), { ctrlKey: false, metaKey: false });
+      break;
+    case 'select-all':
+      selectAllWells();
+      break;
+    case 'clear-selected':
+      if (selectedWells.size > 0) {
+        pushUndo();
+        for (const wid of selectedWells) delete annotations[wid];
+        renderPlate();
+        renderAnnoPanel();
+        refreshCSVPreview();
+        saveState();
+      }
+      break;
+  }
+}
+
+// ============================================================
+// Fill right / Fill down
+// ============================================================
+function fillRight() {
+  if (selectedWells.size === 0) return;
+  const wells = [...selectedWells].sort(sortWellIds);
+  // Use the leftmost well's annotations as the source
+  const source = wells[0];
+  if (!annotations[source] || annotations[source].length === 0) return;
+
+  pushUndo();
+  const sourceRow = source[0];
+  const sourceCol = parseInt(source.slice(1), 10);
+  const { cols } = PLATE_FORMATS[plateFormat];
+
+  for (let c = sourceCol + 1; c <= cols; c++) {
+    const targetId = sourceRow + c;
+    if (!annotations[targetId]) annotations[targetId] = [];
+    for (const a of annotations[source]) {
+      annotations[targetId].push({ key: a.key, value: a.value });
+    }
+  }
+
+  renderPlate();
+  refreshCSVPreview();
+  saveState();
+  updateColorByOptions();
+}
+
+function fillDown() {
+  if (selectedWells.size === 0) return;
+  const wells = [...selectedWells].sort(sortWellIds);
+  const source = wells[0];
+  if (!annotations[source] || annotations[source].length === 0) return;
+
+  pushUndo();
+  const sourceRowIdx = ROW_LETTERS.indexOf(source[0]);
+  const sourceCol = parseInt(source.slice(1), 10);
+  const { rows } = PLATE_FORMATS[plateFormat];
+
+  for (let r = sourceRowIdx + 1; r < rows; r++) {
+    const targetId = ROW_LETTERS[r] + sourceCol;
+    if (!annotations[targetId]) annotations[targetId] = [];
+    for (const a of annotations[source]) {
+      annotations[targetId].push({ key: a.key, value: a.value });
+    }
+  }
+
+  renderPlate();
+  refreshCSVPreview();
+  saveState();
+  updateColorByOptions();
+}
+
+// ============================================================
+// Statistics
+// ============================================================
+function updateStats() {
+  const { rows, cols } = PLATE_FORMATS[plateFormat];
+  const totalWells = rows * cols;
+  const annotatedWells = Object.keys(annotations).filter(k => annotations[k].length > 0).length;
+  const totalAnnotations = Object.values(annotations).reduce((sum, a) => sum + a.length, 0);
+  const uniqueKeys = getAllUsedKeys().length;
+
+  statsBar.innerHTML = `
+    <span class="stat"><span class="stat-label">Wells:</span> ${annotatedWells}/${totalWells} annotated</span>
+    <span class="stat"><span class="stat-label">Annotations:</span> ${totalAnnotations} total</span>
+    <span class="stat"><span class="stat-label">Keys:</span> ${uniqueKeys} unique</span>
+  `;
+}
+
+// ============================================================
+// JSON save / load project
+// ============================================================
+function saveProject() {
+  const project = {
+    version: 1,
+    plateFormat,
+    annotations,
+    timestamp: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `plate_${plateFormat}_project.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function loadProject(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const project = JSON.parse(ev.target.result);
+      if (!project.annotations) { alert('Invalid project file.'); return; }
+      pushUndo();
+      if (project.plateFormat && PLATE_FORMATS[project.plateFormat]) {
+        plateFormat = project.plateFormat;
+        formatSelect.value = plateFormat;
+      }
+      annotations = project.annotations;
+      selectedWells.clear();
+      lastClickedWell = null;
+      renderPlate();
+      renderAnnoPanel();
+      refreshCSVPreview();
+      saveState();
+      updateColorByOptions();
+    } catch (err) {
+      alert('Error loading project: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  fileLoad.value = '';
+}
+
+// ============================================================
+// Plate templates
+// ============================================================
+function onTemplateSelect() {
+  const tmpl = templateSelect.value;
+  if (!tmpl) return;
+  const hasData = Object.keys(annotations).length > 0;
+  if (hasData && !confirm('Loading a template will clear current annotations. Continue?')) {
+    templateSelect.value = '';
+    return;
+  }
+  pushUndo();
+  annotations = {};
+  selectedWells.clear();
+
+  const { rows, cols } = PLATE_FORMATS[plateFormat];
+
+  switch (tmpl) {
+    case 'serial-dilution':
+      templateSerialDilution(rows, cols);
+      break;
+    case 'dose-response':
+      templateDoseResponse(rows, cols);
+      break;
+    case 'controls-border':
+      templateControlsBorder(rows, cols);
+      break;
+    case 'quadrant':
+      templateQuadrant(rows, cols);
+      break;
+    case 'checkerboard':
+      templateCheckerboard(rows, cols);
+      break;
+  }
+
+  templateSelect.value = '';
+  renderPlate();
+  renderAnnoPanel();
+  refreshCSVPreview();
+  saveState();
+  updateColorByOptions();
+}
+
+function templateSerialDilution(rows, cols) {
+  for (let r = 0; r < rows; r++) {
+    for (let c = 1; c <= cols; c++) {
+      const wellId = ROW_LETTERS[r] + c;
+      annotations[wellId] = [
+        { key: 'Sample', value: 'Sample_' + ROW_LETTERS[r] },
+        { key: 'Dilution', value: '1:' + Math.pow(2, c - 1) },
+      ];
+    }
+  }
+}
+
+function templateDoseResponse(rows, cols) {
+  const doses = [];
+  for (let c = 0; c < cols; c++) {
+    doses.push((100 / Math.pow(3, c)).toFixed(2));
+  }
+  for (let r = 0; r < rows; r++) {
+    for (let c = 1; c <= cols; c++) {
+      const wellId = ROW_LETTERS[r] + c;
+      annotations[wellId] = [
+        { key: 'Compound', value: 'Compound_' + ROW_LETTERS[r] },
+        { key: 'Concentration_uM', value: doses[c - 1] },
+      ];
+    }
+  }
+}
+
+function templateControlsBorder(rows, cols) {
+  for (let r = 0; r < rows; r++) {
+    for (let c = 1; c <= cols; c++) {
+      const wellId = ROW_LETTERS[r] + c;
+      const isBorder = r === 0 || r === rows - 1 || c === 1 || c === cols;
+      annotations[wellId] = [
+        { key: 'Type', value: isBorder ? 'Control' : 'Sample' },
+      ];
+      if (isBorder) {
+        annotations[wellId].push({ key: 'Control_Type', value: (c <= cols / 2) ? 'Positive' : 'Negative' });
+      }
+    }
+  }
+}
+
+function templateQuadrant(rows, cols) {
+  const midR = Math.floor(rows / 2);
+  const midC = Math.floor(cols / 2);
+  const quadrants = ['Q1_TopLeft', 'Q2_TopRight', 'Q3_BottomLeft', 'Q4_BottomRight'];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 1; c <= cols; c++) {
+      const wellId = ROW_LETTERS[r] + c;
+      const qi = (r < midR ? 0 : 2) + (c <= midC ? 0 : 1);
+      annotations[wellId] = [
+        { key: 'Quadrant', value: quadrants[qi] },
+      ];
+    }
+  }
+}
+
+function templateCheckerboard(rows, cols) {
+  for (let r = 0; r < rows; r++) {
+    for (let c = 1; c <= cols; c++) {
+      const wellId = ROW_LETTERS[r] + c;
+      const isEven = (r + c) % 2 === 0;
+      annotations[wellId] = [
+        { key: 'Group', value: isEven ? 'Group_A' : 'Group_B' },
+      ];
+    }
+  }
 }
