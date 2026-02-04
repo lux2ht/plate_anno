@@ -57,6 +57,17 @@ Pre-built annotation templates for common experimental layouts:
 - Hover tooltips with full annotation details
 - Statistics bar showing well counts and annotation keys
 
+### Chart Panel (powered by Plotly.js)
+Interactive data visualization with publication-quality export:
+- **Chart Types**: Bar, Line, Scatter, Box Plot, Violin Plot, Heatmap, Pie
+- **Multi-level Grouping**: Up to 3 grouping levels for complex experiments
+- **Aggregation**: Count, Sum, Mean, Median, Min, Max
+- **Error Bars**: Standard Deviation (SD) or Standard Error of Mean (SEM)
+- **Color Themes**: Default, Colorblind-safe, Pastel, Nature, Corporate, Viridis, or Custom
+- **Custom Colors**: Define your own color palette with a color picker
+- **Data Source**: Visualize all wells or only selected wells
+- **Export**: PNG, SVG, WebP via Plotly toolbar (perfect for presentations)
+
 ### User Experience
 - Dark mode toggle
 - Undo/Redo with 50-step history (Ctrl+Z/Y)
@@ -98,6 +109,15 @@ plate_anno/
 ├── index.html    # Main HTML file
 ├── style.css     # Styles (including dark mode)
 ├── app.js        # Application logic
+├── examples/     # Sample CSV files for testing
+│   ├── plate_6well.csv
+│   ├── plate_12well.csv
+│   ├── plate_24well.csv
+│   ├── plate_48well.csv
+│   ├── plate_96well.csv
+│   ├── plate_384well.csv
+│   ├── plate_1536well.csv
+│   └── chart_test_96well.csv  # Sample data for chart testing
 ├── CLAUDE.md     # AI assistant instructions
 ├── PLAN.md       # Implementation plan
 └── README.md     # This file
