@@ -4,6 +4,35 @@ A browser-based tool for annotating microplate wells with custom key-value metad
 
 **Zero dependencies. No build step. Just open `index.html` in your browser.**
 
+## Installation and Usage
+
+### Option 1: Run directly (recommended)
+
+```bash
+git clone https://github.com/lux2ht/plate_anno.git
+cd plate_anno
+open index.html
+```
+
+If `open` is unavailable on your OS, double-click `index.html` in your file explorer.
+
+### Option 2: Serve locally (if your browser blocks some local file behaviors)
+
+```bash
+git clone https://github.com/lux2ht/plate_anno.git
+cd plate_anno
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000` in your browser.
+
+### Typical workflow
+
+1. Choose a plate format (6 to 1536 wells).
+2. Annotate wells (single, multi-select, range, or drag selection).
+3. Use **Data View and Plot** to inspect table/CSV/chart outputs.
+4. Export as CSV (long/wide) or save as JSON project.
+
 ## Features
 
 ### Plate Formats
