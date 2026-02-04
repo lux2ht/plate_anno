@@ -2378,7 +2378,7 @@ function renderChart() {
     paper_bgcolor: isDark ? '#1e293b' : '#fff',
     plot_bgcolor: isDark ? '#1e293b' : '#fff',
     font: { color: isDark ? '#e0e0e0' : '#333', size: 12 },
-    margin: { t: 30, r: manyLegendItems ? 120 : 30, b: 20, l: 20 },
+    margin: { t: 30, r: manyLegendItems ? 120 : 30, b: hasLegend && !manyLegendItems ? 80 : 20, l: 20 },
     autosize: true,
     showlegend: hasLegend,
     legend: manyLegendItems ? {
@@ -2393,7 +2393,7 @@ function renderChart() {
       orientation: 'h',
       x: 0.5,
       xanchor: 'center',
-      y: -0.25,
+      y: -0.35,
       yanchor: 'top',
       bgcolor: 'rgba(0,0,0,0)',
       font: { size: 11 }
