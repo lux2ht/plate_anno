@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plate Annotation Tool</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="header-bar">
+    <div class="header-left">
+      <h1>Plate Annotation Tool</h1>
+      <input type="text" id="plate-name" placeholder="Untitled Plate" title="Name this plate">
+    </div>
+    <div class="header-actions">
+      <button id="btn-help" title="Keyboard shortcuts (?)">? Help</button>
+      <button id="btn-dark-mode" title="Toggle dark mode">Dark Mode</button>
+    </div>
+  </div>
+  <div id="toast-container"></div>
+
+  <div class="top-panels">
+    <!-- Left: plate format selector + controls -->
+    <div class="panel panel-left">
+      <div class="controls-bar">
+        <div class="control-group">
+          <label for="plate-format">Plate Format</label>
+          <select id="plate-format">
+            <option value="6">6-well</option>
+            <option value="12">12-well</option>
+            <option value="24">24-well</option>
+            <option value="48">48-well</option>
+            <option value="96" selected>96-well</option>
+            <option value="384">384-well</option>
+            <option value="1536">1536-well</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="color-by">Color by</label>
+          <select id="color-by">
+            <option value="">None</option>
+          </select>
+        </div>
+        <div class="control-group search-group">
+          <label for="search-input">Search</label>
+          <input type="text" id="search-input" placeholder="Filter wells...">
+        </div>
+        <div class="control-group">
+          <label for="range-input">Select Range</label>
+          <input type="text" id="range-input" class="range-input" placeholder="e.g. A1:C6">
+        </div>
+        <div class="control-group">
+          <label><input type="checkbox" id="include-empty"> Include empty wells</label>
+        </div>
+        <div class="control-group">
+          <label for="template-select">Template</label>
+          <select id="template-select">
+            <option value="">Load template...</option>
+            <option value="serial-dilution">Serial Dilution</option>
+            <option value="dose-response">Dose Response</option>
+            <option value="controls-border">Controls on Border</option>
+            <option value="quadrant">Quadrant Layout</option>
+            <option value="checkerboard">Checkerboard</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="selection-info" id="selection-info"></div>
+      <div class="plate-container" id="plate-container"></div>
+
+      <div class="button-row">
+        <button id="btn-export" title="Download CSV (long format)">Export CSV</button>
+        <button id="btn-export-wide" title="Download CSV (wide format)">Export Wide</button>
+        <button id="btn-import" title="Import annotations from CSV">Import CSV</button>
+        <button id="btn-save" title="Save full project as JSON">Save Project</button>
+        <button id="btn-load" title="Load project from JSON">Load Project</button>
+        <button id="btn-undo" title="Undo (Ctrl+Z)" disabled>Undo</button>
+        <button id="btn-redo" title="Redo (Ctrl+Y)" disabled>Redo</button>
+        <button id="btn-copy" title="Copy selected wells (Ctrl+C)" disabled>Copy</button>
+        <button id="btn-paste" title="Paste to selected wells (Ctrl+V)" disabled>Paste</button>
+        <button id="btn-clear" title="Clear all annotations">Clear All</button>
+        <button id="btn-rotate" title="Rotate annotations 90° clockwise">Rotate 90°</button>
+        <button id="btn-mirror-h" title="Mirror annotations horizontally">Mirror H</button>
+        <button id="btn-mirror-v" title="Mirror annotations vertically">Mirror V</button>
+      </div>
+      <input type="file" id="file-import" accept=".csv" style="display:none">
+      <input type="file" id="file-load" accept=".json" style="display:none">
+
+      <div class="stats-bar" id="stats-bar"></div>
+    </div>
+
+    <!-- Right: annotation panel -->
+    <div class="panel panel-right">
+      <h2>Annotations</h2>
+      <div id="anno-panel">
+        <p class="placeholder">Click a well to annotate.<br><br>
+          <strong>Tips:</strong><br>
+          Ctrl+Click to select multiple wells<br>
+          Shift+Click to select a range<br>
+          Click row/column headers to select entire rows/columns<br>
+          Drag to select a rectangle<br>
+          Right-click a well for more options
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom: CSV preview / Table view -->
+  <div class="panel panel-bottom">
+    <div class="bottom-header">
+      <h2>Data View</h2>
+      <div class="view-toggle">
+        <button id="btn-view-csv" class="view-btn active">CSV (Long)</button>
+        <button id="btn-view-wide" class="view-btn">CSV (Wide)</button>
+        <button id="btn-view-table" class="view-btn">Table</button>
+      </div>
+    </div>
+    <pre id="csv-preview">No annotations yet.</pre>
+    <div id="table-view" style="display:none"></div>
+  </div>
+
+  <!-- Context menu -->
+  <div class="context-menu" id="context-menu" style="display:none">
+    <div class="ctx-item" data-action="annotate">Annotate</div>
+    <div class="ctx-item" data-action="copy">Copy</div>
+    <div class="ctx-item" data-action="paste">Paste</div>
+    <div class="ctx-separator"></div>
+    <div class="ctx-item" data-action="fill-right">Fill Right</div>
+    <div class="ctx-item" data-action="fill-down">Fill Down</div>
+    <div class="ctx-item" data-action="dilution-series">Dilution Series...</div>
+    <div class="ctx-item" data-action="assign-replicates">Assign Replicates</div>
+    <div class="ctx-separator"></div>
+    <div class="ctx-item" data-action="select-row">Select Row</div>
+    <div class="ctx-item" data-action="select-col">Select Column</div>
+    <div class="ctx-item" data-action="select-all">Select All</div>
+    <div class="ctx-item" data-action="invert-selection">Invert Selection</div>
+    <div class="ctx-separator"></div>
+    <div class="ctx-item" data-action="select-same">Select Same Annotations</div>
+    <div class="ctx-item" data-action="select-empty">Select Empty Wells</div>
+    <div class="ctx-item" data-action="select-annotated">Select Annotated Wells</div>
+    <div class="ctx-separator"></div>
+    <div class="ctx-item ctx-danger" data-action="clear-selected">Clear Selected</div>
+  </div>
+
+  <!-- Hover tooltip -->
+  <div class="hover-tooltip" id="hover-tooltip" style="display:none"></div>
+
+  <!-- Help modal -->
+  <div class="modal-overlay" id="help-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Keyboard Shortcuts</h2>
+        <button class="modal-close" id="help-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <table class="shortcuts-table">
+          <tr><td><kbd>Ctrl+Z</kbd></td><td>Undo</td></tr>
+          <tr><td><kbd>Ctrl+Y</kbd></td><td>Redo</td></tr>
+          <tr><td><kbd>Ctrl+C</kbd></td><td>Copy selected wells</td></tr>
+          <tr><td><kbd>Ctrl+V</kbd></td><td>Paste to selected wells</td></tr>
+          <tr><td><kbd>Ctrl+A</kbd></td><td>Select all wells</td></tr>
+          <tr><td><kbd>Escape</kbd></td><td>Deselect all</td></tr>
+          <tr><td><kbd>Delete</kbd></td><td>Clear selected wells</td></tr>
+          <tr><td><kbd>Arrow keys</kbd></td><td>Navigate wells</td></tr>
+          <tr><td><kbd>Shift+Arrow</kbd></td><td>Extend selection</td></tr>
+          <tr><td><kbd>Tab</kbd></td><td>Next well</td></tr>
+          <tr><td><kbd>Shift+Tab</kbd></td><td>Previous well</td></tr>
+          <tr><td><kbd>Ctrl+Click</kbd></td><td>Toggle well selection</td></tr>
+          <tr><td><kbd>Shift+Click</kbd></td><td>Select range</td></tr>
+          <tr><td><kbd>?</kbd></td><td>Show this help</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dilution series modal -->
+  <div class="modal-overlay" id="dilution-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Dilution Series</h2>
+        <button class="modal-close" id="dilution-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label for="dil-key">Annotation Key</label>
+          <input type="text" id="dil-key" value="Concentration" placeholder="e.g. Concentration">
+        </div>
+        <div class="form-row">
+          <label for="dil-start">Starting Value</label>
+          <input type="number" id="dil-start" value="100" step="any">
+        </div>
+        <div class="form-row">
+          <label for="dil-factor">Dilution Factor</label>
+          <input type="number" id="dil-factor" value="2" step="any" min="0.01">
+        </div>
+        <div class="form-row">
+          <label for="dil-unit">Unit (optional)</label>
+          <input type="text" id="dil-unit" value="uM" placeholder="e.g. uM, nM, mg/mL">
+        </div>
+        <div class="form-row">
+          <label for="dil-direction">Direction</label>
+          <select id="dil-direction">
+            <option value="right">Left to Right</option>
+            <option value="down">Top to Bottom</option>
+          </select>
+        </div>
+        <p class="dil-preview" id="dil-preview"></p>
+        <button id="dil-apply" class="primary-btn">Apply to Selected Wells</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

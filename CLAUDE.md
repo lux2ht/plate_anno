@@ -25,8 +25,15 @@ This file provides guidance for AI assistants working with the `plate_anno` repo
 ### Getting Started
 
 1. Clone the repository
-2. Check out your development branch
-3. (Additional setup steps to be documented as the project develops)
+2. Open `index.html` in a browser — no build step needed
+3. All state is saved to localStorage automatically
+
+### Key Architecture Notes
+
+- State is a plain object: `{ plateFormat, annotations }` where annotations maps well IDs to arrays of `{ key, value }` pairs
+- Undo/redo uses JSON snapshots on a stack (max 50)
+- All rendering is imperative DOM manipulation (no virtual DOM)
+- `renderPlate()` is the main re-render entry; `updateWellVisual()` does targeted updates during input to avoid losing focus
 
 ## Conventions
 

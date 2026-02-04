@@ -3,7 +3,7 @@
 ## Technology Choice
 
 **Framework:** Single-page app using vanilla HTML + CSS + JavaScript (no build step).
-This keeps the project simple, zero-dependency, and easy to host on GitHub Pages or any static server. If complexity grows, we can migrate to a framework later.
+This keeps the project simple, zero-dependency, and easy to host on GitHub Pages or any static server.
 
 **Key files:**
 ```
@@ -12,7 +12,7 @@ plate_anno/
 ├── PLAN.md
 ├── index.html          # Entry point, layout shell
 ├── style.css           # All styles
-├── app.js              # Application logic
+├── app.js              # Application logic (~1750 lines)
 └── README.md           # (optional, only if requested)
 ```
 
@@ -23,7 +23,7 @@ plate_anno/
 ```js
 // State shape
 {
-  plateFormat: "96",          // "6" | "12" | "24" | "48" | "96" | "384"
+  plateFormat: "96",          // "6" | "12" | "24" | "48" | "96" | "384" | "1536"
   annotations: {
     // key = well ID, value = array of annotation objects
     "A1": [
@@ -49,57 +49,99 @@ plate_anno/
 | 48-well | 6 | 8 |
 | 96-well | 8 | 12 |
 | 384-well | 16 | 24 |
+| 1536-well | 32 | 48 |
 
 ---
 
-## Implementation Steps
+## Implemented Features
 
-### Step 1 — Plate selector & grid rendering
-- Dropdown to pick plate format (6, 12, 24, 48, 96, 384).
-- Render a grid of wells as a CSS grid with row/column labels (A-P, 1-24).
-- Wells are clickable; clicking opens the annotation panel.
-- Changing plate format clears annotations (with confirmation if data exists).
+### Core
+- Plate format selector (6 to 1536 wells)
+- Interactive well grid with row/column headers
+- Click to select well and open annotation panel
+- Key-value annotation pairs per well
+- Add/remove annotations with immediate state save
+- Annotation badge count on wells
+- Color fill for annotated wells
 
-### Step 2 — Well selection & annotation panel
-- Clicking a well highlights it and opens a side/bottom panel.
-- Panel shows the well ID (e.g. "B3") and a list of existing annotations for that well.
-- Each annotation is a key-value pair (e.g. key="Treatment", value="DMSO").
-- "Add annotation" button appends a new empty key-value row.
-- Each row has a delete button to remove that annotation.
-- Edits are saved to state immediately on input change.
+### Selection
+- Multi-well selection (Ctrl+Click)
+- Shift+Click range selection
+- Drag rectangle selection
+- Row/column header click to select entire row/column
+- Select All (Ctrl+A)
+- Range input (e.g. "A1:C6", "A1,B2,C3")
+- Arrow key navigation
+- Tab/Shift+Tab navigation (reading order)
+- Select Same Annotations (context menu)
 
-### Step 3 — Visual feedback on the plate
-- Wells with annotations show a colored dot or fill to indicate data exists.
-- Hovering a well shows a tooltip with its annotations.
-- The number of annotations can be shown as a small badge on the well.
+### Annotation Tools
+- Batch annotation for multiple selected wells
+- Copy/Paste wells (Ctrl+C/V) with positional mapping
+- Fill Right / Fill Down (context menu)
+- Double-click quick annotate
+- Autocomplete for annotation keys (includes preset biology keys)
+- Autocomplete for annotation values
+- Preset keys: Treatment, Concentration, Cell Line, Replicate, Compound, Dose, Time Point, Condition, etc.
 
-### Step 4 — Multi-well selection (stretch / nice-to-have)
-- Shift+click or drag to select multiple wells.
-- Apply the same annotation to all selected wells at once.
+### Plate Templates
+- Serial Dilution
+- Dose Response
+- Controls on Border
+- Quadrant Layout
+- Checkerboard
 
-### Step 5 — CSV export
-- "Export CSV" button generates a CSV in **long format**:
-  ```
-  Well,Row,Column,AnnotationKey,AnnotationValue
-  A1,A,1,Treatment,DMSO
-  A1,A,1,Concentration,10uM
-  B3,B,3,Treatment,Drug_X
-  ```
-- One row per annotation per well.
-- Wells with no annotations are omitted (or optionally included as empty rows).
-- CSV is downloaded as a file via `Blob` + `URL.createObjectURL`.
+### Plate Transforms
+- Rotate 90° clockwise
+- Mirror Horizontal
+- Mirror Vertical
 
-### Step 6 — Polish & UX
-- Responsive layout so the plate grid scales on smaller screens.
-- Clear all annotations button (with confirmation).
-- Keyboard accessibility for the annotation panel.
+### Export / Import
+- CSV export (long format — one row per annotation per well)
+- CSV export (wide format — one row per well, keys as columns)
+- Include empty wells option
+- CSV import with auto-detection of plate format
+- JSON project save/load
+- Plate name included in export filenames
 
----
+### Data Views (bottom panel)
+- CSV (Long) preview
+- CSV (Wide) preview
+- Table view
 
-## Out of Scope (for now)
-- Backend / database persistence (all client-side, in-memory).
-- User accounts or sharing.
-- Import CSV to pre-fill annotations.
-- Undo/redo.
+### Visual
+- Color-by annotation key with color legend and well counts
+- Search/filter wells by annotation content
+- Hover tooltip with full annotation details
+- Annotation preview inside wells (for smaller plates)
+- Well names displayed in small plate formats (6/12/24/48)
+- Plate border styling
+- Dark mode toggle
+- Print-friendly CSS
 
-These can be added incrementally if needed.
+### UX
+- Undo/Redo (Ctrl+Z/Y) with 50-step history
+- localStorage auto-persistence
+- Right-click context menu
+- Toast notifications
+- Help modal with keyboard shortcuts (? key)
+- Plate name field
+- Statistics bar (annotated wells count, unique keys, unique values)
+- Responsive layout
+- Format-specific well sizing (80px for 6-well down to 12px for 1536-well)
+
+### Keyboard Shortcuts
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+Z | Undo |
+| Ctrl+Y | Redo |
+| Ctrl+C | Copy selected wells |
+| Ctrl+V | Paste to selected wells |
+| Ctrl+A | Select all wells |
+| Escape | Deselect all |
+| Delete | Clear selected wells |
+| Arrow keys | Navigate wells |
+| Shift+Arrow | Extend selection |
+| Tab | Next well |
+| Shift+Tab | Previous well |
+| ? | Show help |
