@@ -28,6 +28,16 @@ const COLOR_PALETTE = [
   '#d946ef', '#64748b', '#eab308', '#78716c', '#dc2626',
 ];
 
+// Chart color themes
+const CHART_COLOR_THEMES = {
+  default: ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#06b6d4', '#84cc16', '#e11d48'],
+  colorblind: ['#0077BB', '#33BBEE', '#009988', '#EE7733', '#CC3311', '#EE3377', '#BBBBBB', '#AA4499', '#44AA99', '#882255', '#332288', '#999933'],
+  pastel: ['#B4D4FF', '#FFD4B4', '#D4FFB4', '#FFB4D4', '#D4B4FF', '#B4FFE8', '#FFE8B4', '#E8B4FF', '#B4E8FF', '#FFB4B4', '#B4FFB4', '#D4D4FF'],
+  nature: ['#2E7D32', '#558B2F', '#7CB342', '#8BC34A', '#AED581', '#C5E1A5', '#1B5E20', '#388E3C', '#4CAF50', '#66BB6A', '#81C784', '#A5D6A7'],
+  corporate: ['#1E3A5F', '#3D5A80', '#5C7A9B', '#98C1D9', '#E0FBFC', '#293241', '#445E74', '#6A839C', '#A3C4D9', '#D1E8F0', '#1C4966', '#3E6B8A'],
+  viridis: ['#440154', '#482878', '#3E4A89', '#31688E', '#26828E', '#1F9E89', '#35B779', '#6DCD59', '#B4DE2C', '#FDE725', '#21918C', '#5DC863']
+};
+
 const STORAGE_KEY = 'plateAnno_state';
 
 // Common annotation key presets for biology experiments
@@ -96,10 +106,42 @@ const btnRotate = document.getElementById('btn-rotate');
 const btnMirrorH = document.getElementById('btn-mirror-h');
 const btnMirrorV = document.getElementById('btn-mirror-v');
 const includeEmptyCheckbox = document.getElementById('include-empty');
+const btnViewChart = document.getElementById('btn-view-chart');
+const chartView = document.getElementById('chart-view');
+const chartContainer = document.getElementById('chart-container');
+const chartTypeSelect = document.getElementById('chart-type');
+const chartXAxisSelect = document.getElementById('chart-x-axis');
+const chartYAxisSelect = document.getElementById('chart-y-axis');
+const chartGroup1Select = document.getElementById('chart-group1');
+const chartGroup2Select = document.getElementById('chart-group2');
+const chartGroup3Select = document.getElementById('chart-group3');
+const chartAggregationSelect = document.getElementById('chart-aggregation');
+const chartThemeSelect = document.getElementById('chart-theme');
+const chartErrorBarsSelect = document.getElementById('chart-error-bars');
+const btnEditColors = document.getElementById('btn-edit-colors');
+const customColorsModal = document.getElementById('custom-colors-modal');
+const customColorsClose = document.getElementById('custom-colors-close');
+const customColorsList = document.getElementById('custom-colors-list');
+const btnAddCustomColor = document.getElementById('btn-add-custom-color');
+const btnResetCustomColors = document.getElementById('btn-reset-custom-colors');
+const btnApplyCustomColors = document.getElementById('btn-apply-custom-colors');
 
 // Context menu state
 let contextWell = null;
-let currentView = 'table'; // 'table', 'csv', or 'wide'
+let currentView = 'table'; // 'table', 'csv', 'wide', or 'chart'
+
+// Chart state
+let chartType = 'bar';
+let chartXAxis = '';
+let chartYAxis = '_count';
+let chartGroup1 = '';
+let chartGroup2 = '';
+let chartGroup3 = '';
+let chartAggregation = 'count';
+let chartTheme = 'default';
+let chartErrorBars = 'none';
+let chartDataSource = 'all';
+let customChartColors = [...CHART_COLOR_THEMES.default]; // Default custom colors
 
 // ---- Init ----
 loadState();
@@ -132,6 +174,28 @@ includeEmptyCheckbox.addEventListener('change', () => { refreshCSVPreview(); });
 btnRotate.addEventListener('click', rotatePlate90);
 btnMirrorH.addEventListener('click', mirrorPlateH);
 btnMirrorV.addEventListener('click', mirrorPlateV);
+btnViewChart.addEventListener('click', () => switchView('chart'));
+chartTypeSelect.addEventListener('change', onChartControlChange);
+chartXAxisSelect.addEventListener('change', onChartControlChange);
+chartYAxisSelect.addEventListener('change', onChartControlChange);
+chartGroup1Select.addEventListener('change', onChartControlChange);
+chartGroup2Select.addEventListener('change', onChartControlChange);
+chartGroup3Select.addEventListener('change', onChartControlChange);
+chartAggregationSelect.addEventListener('change', onChartControlChange);
+chartErrorBarsSelect.addEventListener('change', onChartControlChange);
+document.querySelectorAll('input[name="chart-source"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    chartDataSource = e.target.value;
+    if (currentView === 'chart') renderChart();
+  });
+});
+btnEditColors.addEventListener('click', openCustomColorsModal);
+customColorsClose.addEventListener('click', closeCustomColorsModal);
+customColorsModal.addEventListener('click', (e) => { if (e.target === customColorsModal) closeCustomColorsModal(); });
+btnAddCustomColor.addEventListener('click', addCustomColorRow);
+btnResetCustomColors.addEventListener('click', resetCustomColors);
+btnApplyCustomColors.addEventListener('click', applyCustomColors);
+chartThemeSelect.addEventListener('change', onThemeChange);
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
@@ -1161,6 +1225,10 @@ function refreshCSVPreview() {
     csvPreview.textContent = hasData ? buildCSV() : 'No annotations yet.';
   }
   if (currentView === 'table') renderTableView();
+  if (currentView === 'chart') {
+    updateChartControls();
+    renderChart();
+  }
 }
 
 function buildWideCSV() {
@@ -1953,9 +2021,15 @@ function switchView(view) {
   btnViewCSV.classList.toggle('active', view === 'csv');
   btnViewWide.classList.toggle('active', view === 'wide');
   btnViewTable.classList.toggle('active', view === 'table');
+  btnViewChart.classList.toggle('active', view === 'chart');
   csvPreview.style.display = (view === 'csv' || view === 'wide') ? '' : 'none';
   tableView.style.display = view === 'table' ? '' : 'none';
+  chartView.style.display = view === 'chart' ? '' : 'none';
   if (view === 'table') renderTableView();
+  if (view === 'chart') {
+    updateChartControls();
+    renderChart();
+  }
   refreshCSVPreview();
 }
 
@@ -2093,3 +2167,693 @@ function positionTooltip(e) {
 function hideHoverTooltip() {
   hoverTooltip.style.display = 'none';
 }
+
+// ============================================================
+// Chart functions
+// ============================================================
+
+function onChartControlChange() {
+  chartType = chartTypeSelect.value;
+  chartXAxis = chartXAxisSelect.value;
+  chartYAxis = chartYAxisSelect.value;
+  chartGroup1 = chartGroup1Select.value;
+  chartGroup2 = chartGroup2Select.value;
+  chartGroup3 = chartGroup3Select.value;
+  chartAggregation = chartAggregationSelect.value;
+  chartTheme = chartThemeSelect.value;
+  chartErrorBars = chartErrorBarsSelect.value;
+  if (currentView === 'chart') renderChart();
+}
+
+function updateChartControls() {
+  const keys = getAllUsedKeys().filter(k => !PRESET_KEYS.includes(k) || Object.values(annotations).some(annos => annos.some(a => a.key === k)));
+  const actualKeys = [];
+  for (const wid of Object.keys(annotations)) {
+    for (const a of annotations[wid]) {
+      if (a.key.trim() && !actualKeys.includes(a.key.trim())) {
+        actualKeys.push(a.key.trim());
+      }
+    }
+  }
+  actualKeys.sort();
+
+  // Update X-axis select
+  const currentX = chartXAxisSelect.value;
+  chartXAxisSelect.innerHTML = '<option value="">(Select key)</option>';
+  for (const k of actualKeys) {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = k;
+    if (k === currentX) opt.selected = true;
+    chartXAxisSelect.appendChild(opt);
+  }
+
+  // Update Y-axis select (count + numeric keys)
+  const currentY = chartYAxisSelect.value;
+  chartYAxisSelect.innerHTML = '<option value="_count">Count</option>';
+  for (const k of actualKeys) {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = k;
+    if (k === currentY) opt.selected = true;
+    chartYAxisSelect.appendChild(opt);
+  }
+
+  // Update group selects
+  [chartGroup1Select, chartGroup2Select, chartGroup3Select].forEach((sel, idx) => {
+    const current = sel.value;
+    sel.innerHTML = '<option value="">(none)</option>';
+    for (const k of actualKeys) {
+      const opt = document.createElement('option');
+      opt.value = k;
+      opt.textContent = k;
+      if (k === current) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  });
+
+  // Sync state from selects
+  chartXAxis = chartXAxisSelect.value;
+  chartYAxis = chartYAxisSelect.value;
+  chartGroup1 = chartGroup1Select.value;
+  chartGroup2 = chartGroup2Select.value;
+  chartGroup3 = chartGroup3Select.value;
+}
+
+function getChartData(source) {
+  const wellIds = source === 'selection' && selectedWells.size > 0
+    ? [...selectedWells]
+    : Object.keys(annotations);
+
+  return wellIds.flatMap(wellId => {
+    if (!annotations[wellId]?.length) return [];
+    const row = { well: wellId };
+    for (const { key, value } of annotations[wellId]) {
+      if (key) row[key] = value;
+    }
+    return [row];
+  });
+}
+
+function extractNumericForChart(str) {
+  if (str === undefined || str === null || str === '') return null;
+  const s = String(str);
+  const m = s.match(/^[\s]*([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)/);
+  return m ? parseFloat(m[1]) : null;
+}
+
+function aggregate(values, method) {
+  if (values.length === 0) return 0;
+  switch (method) {
+    case 'count': return values.length;
+    case 'sum': return values.reduce((a, b) => a + b, 0);
+    case 'mean': return values.reduce((a, b) => a + b, 0) / values.length;
+    case 'median': {
+      const sorted = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+    case 'min': return Math.min(...values);
+    case 'max': return Math.max(...values);
+    default: return values.length;
+  }
+}
+
+function groupData(data, xKey, groupKeys, valueKey, aggregation) {
+  if (!xKey) return [];
+
+  const groups = {};
+  for (const row of data) {
+    const xVal = row[xKey] || 'N/A';
+    const groupVals = groupKeys.filter(Boolean).map(k => row[k] || 'N/A');
+    const groupKey = groupVals.length > 0 ? groupVals.join('|') : '_all';
+    const fullKey = `${xVal}|||${groupKey}`;
+
+    if (!groups[fullKey]) {
+      groups[fullKey] = {
+        x: xVal,
+        groupLabels: groupVals,
+        groupKey,
+        values: []
+      };
+    }
+
+    if (valueKey === '_count') {
+      groups[fullKey].values.push(1);
+    } else {
+      const num = extractNumericForChart(row[valueKey]);
+      if (num !== null) groups[fullKey].values.push(num);
+    }
+  }
+
+  return Object.values(groups).map(g => {
+    const values = g.values;
+    const mean = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+    const variance = values.length > 1
+      ? values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / (values.length - 1)
+      : 0;
+    const sd = Math.sqrt(variance);
+    const sem = values.length > 0 ? sd / Math.sqrt(values.length) : 0;
+
+    return {
+      x: g.x,
+      groupLabels: g.groupLabels,
+      groupKey: g.groupKey,
+      value: aggregate(values, aggregation),
+      rawValues: values,
+      mean,
+      sd,
+      sem,
+      n: values.length
+    };
+  });
+}
+
+function getThemeColors(count) {
+  const palette = chartTheme === 'custom'
+    ? customChartColors
+    : (CHART_COLOR_THEMES[chartTheme] || CHART_COLOR_THEMES.default);
+  const colors = [];
+  for (let i = 0; i < count; i++) {
+    colors.push(palette[i % palette.length]);
+  }
+  return colors;
+}
+
+function renderChart() {
+  if (typeof Plotly === 'undefined') {
+    chartContainer.innerHTML = '<div class="chart-empty-message">Plotly.js is loading...</div>';
+    return;
+  }
+
+  const data = getChartData(chartDataSource);
+
+  if (data.length === 0) {
+    chartContainer.innerHTML = '<div class="chart-empty-message">No data to visualize. Add annotations to wells first.</div>';
+    return;
+  }
+
+  if (!chartXAxis) {
+    chartContainer.innerHTML = '<div class="chart-empty-message">Select an X-Axis key to create a chart.</div>';
+    return;
+  }
+
+  const groupKeys = [chartGroup1, chartGroup2, chartGroup3].filter(Boolean);
+  const grouped = groupData(data, chartXAxis, groupKeys, chartYAxis, chartAggregation);
+
+  if (grouped.length === 0) {
+    chartContainer.innerHTML = '<div class="chart-empty-message">No data matches the current configuration.</div>';
+    return;
+  }
+
+  const isDark = document.body.classList.contains('dark');
+
+  // Calculate legend position based on number of groups
+  const uniqueGroups = [...new Set(grouped.map(g => g.groupKey))];
+  const hasLegend = groupKeys.length > 0 || chartType === 'pie';
+  const manyLegendItems = uniqueGroups.length > 4;
+
+  const layout = {
+    title: '',
+    paper_bgcolor: isDark ? '#1e293b' : '#fff',
+    plot_bgcolor: isDark ? '#1e293b' : '#fff',
+    font: { color: isDark ? '#e0e0e0' : '#333', size: 12 },
+    margin: { t: 30, r: manyLegendItems ? 120 : 30, b: 20, l: 20 },
+    autosize: true,
+    showlegend: hasLegend,
+    legend: manyLegendItems ? {
+      orientation: 'v',
+      x: 1.02,
+      xanchor: 'left',
+      y: 1,
+      yanchor: 'top',
+      bgcolor: 'rgba(0,0,0,0)',
+      font: { size: 11 }
+    } : {
+      orientation: 'h',
+      x: 0.5,
+      xanchor: 'center',
+      y: -0.25,
+      yanchor: 'top',
+      bgcolor: 'rgba(0,0,0,0)',
+      font: { size: 11 }
+    },
+    xaxis: {
+      title: { text: chartXAxis, standoff: 15 },
+      tickangle: -45,
+      automargin: true,
+      gridcolor: isDark ? '#334155' : '#e5e7eb',
+      linecolor: isDark ? '#475569' : '#ccc'
+    },
+    yaxis: {
+      title: { text: chartYAxis === '_count' ? 'Count' : `${chartYAxis} (${chartAggregation})`, standoff: 10 },
+      automargin: true,
+      gridcolor: isDark ? '#334155' : '#e5e7eb',
+      linecolor: isDark ? '#475569' : '#ccc'
+    }
+  };
+
+  let traces = [];
+
+  switch (chartType) {
+    case 'bar':
+    case 'line':
+      traces = buildBarOrLineTraces(grouped, groupKeys, chartType);
+      if (chartType === 'bar') {
+        layout.barmode = groupKeys.length > 0 ? 'group' : 'relative';
+      }
+      break;
+    case 'scatter':
+      traces = buildScatterTrace(data);
+      break;
+    case 'box':
+      traces = buildBoxTraces(data, groupKeys);
+      break;
+    case 'violin':
+      traces = buildViolinTraces(data, groupKeys);
+      break;
+    case 'heatmap':
+      traces = buildHeatmapTrace(grouped);
+      break;
+    case 'pie':
+      traces = buildPieTrace(grouped);
+      layout.showlegend = true;
+      // Pie charts always need legend on the right for clarity
+      layout.legend = {
+        orientation: 'v',
+        x: 1.02,
+        xanchor: 'left',
+        y: 0.5,
+        yanchor: 'middle',
+        bgcolor: 'rgba(0,0,0,0)',
+        font: { size: 11 }
+      };
+      layout.margin.r = 120;
+      break;
+  }
+
+  const config = {
+    responsive: true,
+    displayModeBar: true,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+    toImageButtonOptions: {
+      format: 'svg',
+      filename: 'plate_chart',
+      height: 600,
+      width: 800,
+      scale: 2
+    }
+  };
+
+  Plotly.newPlot(chartContainer, traces, layout, config);
+}
+
+function buildBarOrLineTraces(grouped, groupKeys, type) {
+  const traces = [];
+
+  if (groupKeys.length === 0) {
+    // Simple bar/line chart
+    const xVals = [...new Set(grouped.map(g => g.x))];
+    const yVals = xVals.map(x => {
+      const match = grouped.find(g => g.x === x);
+      return match ? match.value : 0;
+    });
+    const colors = getThemeColors(xVals.length);
+
+    const trace = {
+      x: xVals,
+      y: yVals,
+      type: type === 'line' ? 'scatter' : 'bar',
+      mode: type === 'line' ? 'lines+markers' : undefined,
+      marker: { color: type === 'bar' ? colors : colors[0] },
+      line: type === 'line' ? { color: colors[0] } : undefined,
+      name: ''
+    };
+
+    // Add error bars
+    if (chartErrorBars !== 'none' && chartAggregation === 'mean') {
+      const errors = xVals.map(x => {
+        const match = grouped.find(g => g.x === x);
+        return match ? (chartErrorBars === 'sd' ? match.sd : match.sem) : 0;
+      });
+      trace.error_y = {
+        type: 'data',
+        array: errors,
+        visible: true
+      };
+    }
+
+    traces.push(trace);
+  } else {
+    // Grouped bar/line chart
+    const uniqueGroups = [...new Set(grouped.map(g => g.groupKey))];
+    const xVals = [...new Set(grouped.map(g => g.x))];
+    const colors = getThemeColors(uniqueGroups.length);
+
+    uniqueGroups.forEach((groupKey, idx) => {
+      const groupData = grouped.filter(g => g.groupKey === groupKey);
+      const yVals = xVals.map(x => {
+        const match = groupData.find(g => g.x === x);
+        return match ? match.value : 0;
+      });
+
+      const trace = {
+        x: xVals,
+        y: yVals,
+        type: type === 'line' ? 'scatter' : 'bar',
+        mode: type === 'line' ? 'lines+markers' : undefined,
+        name: groupKey.replace(/\|/g, ', '),
+        marker: { color: colors[idx] },
+        line: type === 'line' ? { color: colors[idx] } : undefined
+      };
+
+      // Add error bars
+      if (chartErrorBars !== 'none' && chartAggregation === 'mean') {
+        const errors = xVals.map(x => {
+          const match = groupData.find(g => g.x === x);
+          return match ? (chartErrorBars === 'sd' ? match.sd : match.sem) : 0;
+        });
+        trace.error_y = {
+          type: 'data',
+          array: errors,
+          visible: true
+        };
+      }
+
+      traces.push(trace);
+    });
+  }
+
+  return traces;
+}
+
+function buildScatterTrace(data) {
+  if (!chartXAxis || !chartYAxis || chartYAxis === '_count') {
+    return [{
+      x: [],
+      y: [],
+      mode: 'markers',
+      type: 'scatter',
+      text: []
+    }];
+  }
+
+  const points = data.map(row => ({
+    x: extractNumericForChart(row[chartXAxis]),
+    y: extractNumericForChart(row[chartYAxis]),
+    well: row.well,
+    group: chartGroup1 ? row[chartGroup1] : null
+  })).filter(p => p.x !== null && p.y !== null);
+
+  if (chartGroup1) {
+    const groups = [...new Set(points.map(p => p.group || 'N/A'))];
+    const colors = getThemeColors(groups.length);
+
+    return groups.map((group, idx) => ({
+      x: points.filter(p => (p.group || 'N/A') === group).map(p => p.x),
+      y: points.filter(p => (p.group || 'N/A') === group).map(p => p.y),
+      mode: 'markers',
+      type: 'scatter',
+      name: group,
+      marker: { color: colors[idx], size: 8 },
+      text: points.filter(p => (p.group || 'N/A') === group).map(p => p.well)
+    }));
+  }
+
+  const colors = getThemeColors(1);
+  return [{
+    x: points.map(p => p.x),
+    y: points.map(p => p.y),
+    mode: 'markers',
+    type: 'scatter',
+    marker: { color: colors[0], size: 8 },
+    text: points.map(p => p.well)
+  }];
+}
+
+function buildBoxTraces(data, groupKeys) {
+  if (!chartXAxis) return [];
+
+  const xVals = [...new Set(data.map(row => row[chartXAxis] || 'N/A'))];
+
+  if (groupKeys.length === 0) {
+    const colors = getThemeColors(xVals.length);
+    return xVals.map((xVal, idx) => {
+      const yVals = data
+        .filter(row => (row[chartXAxis] || 'N/A') === xVal)
+        .map(row => chartYAxis === '_count' ? 1 : extractNumericForChart(row[chartYAxis]))
+        .filter(v => v !== null);
+
+      return {
+        y: yVals,
+        type: 'box',
+        name: xVal,
+        marker: { color: colors[idx] },
+        boxpoints: 'outliers'
+      };
+    });
+  }
+
+  const uniqueGroups = [...new Set(data.map(row => {
+    return groupKeys.map(k => row[k] || 'N/A').join('|');
+  }))];
+  const colors = getThemeColors(uniqueGroups.length);
+
+  return uniqueGroups.map((group, idx) => {
+    const groupData = data.filter(row => {
+      const rowGroup = groupKeys.map(k => row[k] || 'N/A').join('|');
+      return rowGroup === group;
+    });
+
+    return {
+      x: groupData.map(row => row[chartXAxis] || 'N/A'),
+      y: groupData.map(row => chartYAxis === '_count' ? 1 : extractNumericForChart(row[chartYAxis])).filter(v => v !== null),
+      type: 'box',
+      name: group.replace(/\|/g, ', '),
+      marker: { color: colors[idx] },
+      boxpoints: 'outliers'
+    };
+  });
+}
+
+function buildViolinTraces(data, groupKeys) {
+  if (!chartXAxis) return [];
+
+  const xVals = [...new Set(data.map(row => row[chartXAxis] || 'N/A'))];
+
+  if (groupKeys.length === 0) {
+    const colors = getThemeColors(xVals.length);
+    return xVals.map((xVal, idx) => {
+      const yVals = data
+        .filter(row => (row[chartXAxis] || 'N/A') === xVal)
+        .map(row => chartYAxis === '_count' ? 1 : extractNumericForChart(row[chartYAxis]))
+        .filter(v => v !== null);
+
+      return {
+        y: yVals,
+        type: 'violin',
+        name: xVal,
+        marker: { color: colors[idx] },
+        box: { visible: true },
+        meanline: { visible: true }
+      };
+    });
+  }
+
+  const uniqueGroups = [...new Set(data.map(row => {
+    return groupKeys.map(k => row[k] || 'N/A').join('|');
+  }))];
+  const colors = getThemeColors(uniqueGroups.length);
+
+  return uniqueGroups.map((group, idx) => {
+    const groupData = data.filter(row => {
+      const rowGroup = groupKeys.map(k => row[k] || 'N/A').join('|');
+      return rowGroup === group;
+    });
+
+    return {
+      x: groupData.map(row => row[chartXAxis] || 'N/A'),
+      y: groupData.map(row => chartYAxis === '_count' ? 1 : extractNumericForChart(row[chartYAxis])).filter(v => v !== null),
+      type: 'violin',
+      name: group.replace(/\|/g, ', '),
+      marker: { color: colors[idx] },
+      box: { visible: true },
+      meanline: { visible: true }
+    };
+  });
+}
+
+function buildHeatmapTrace(grouped) {
+  const xVals = [...new Set(grouped.map(g => g.x))].sort();
+  const yVals = [...new Set(grouped.map(g => g.groupKey))].filter(g => g !== '_all').sort();
+
+  if (yVals.length === 0) {
+    // Single row heatmap
+    const zVals = [xVals.map(x => {
+      const match = grouped.find(g => g.x === x);
+      return match ? match.value : 0;
+    })];
+
+    return [{
+      z: zVals,
+      x: xVals,
+      y: ['All'],
+      type: 'heatmap',
+      colorscale: chartTheme === 'viridis' ? 'Viridis' : 'RdBu',
+      reversescale: true
+    }];
+  }
+
+  const zVals = yVals.map(y => {
+    return xVals.map(x => {
+      const match = grouped.find(g => g.x === x && g.groupKey === y);
+      return match ? match.value : 0;
+    });
+  });
+
+  return [{
+    z: zVals,
+    x: xVals,
+    y: yVals.map(y => y.replace(/\|/g, ', ')),
+    type: 'heatmap',
+    colorscale: chartTheme === 'viridis' ? 'Viridis' : 'RdBu',
+    reversescale: true
+  }];
+}
+
+function buildPieTrace(grouped) {
+  const labels = grouped.map(g => g.x);
+  const values = grouped.map(g => g.value);
+  const colors = getThemeColors(labels.length);
+
+  return [{
+    labels,
+    values,
+    type: 'pie',
+    marker: { colors },
+    textinfo: 'label+percent',
+    hoverinfo: 'label+value+percent'
+  }];
+}
+
+// ============================================================
+// Custom colors functions
+// ============================================================
+
+function onThemeChange() {
+  chartTheme = chartThemeSelect.value;
+  btnEditColors.style.display = chartTheme === 'custom' ? '' : 'none';
+  saveChartTheme();
+  if (chartTheme === 'custom') {
+    openCustomColorsModal();
+  }
+  if (currentView === 'chart') renderChart();
+}
+
+function openCustomColorsModal() {
+  customColorsModal.style.display = '';
+  renderCustomColorsList();
+}
+
+function closeCustomColorsModal() {
+  customColorsModal.style.display = 'none';
+}
+
+function renderCustomColorsList() {
+  customColorsList.innerHTML = '';
+  customChartColors.forEach((color, idx) => {
+    const row = document.createElement('div');
+    row.className = 'custom-color-row';
+    row.innerHTML = `
+      <span class="color-index">${idx + 1}.</span>
+      <input type="color" value="${color}" data-idx="${idx}">
+      <input type="text" value="${color}" data-idx="${idx}" placeholder="#000000">
+      <div class="color-preview" style="background:${color}"></div>
+      <button class="btn-remove-color" data-idx="${idx}" ${customChartColors.length <= 1 ? 'disabled' : ''}>&times;</button>
+    `;
+    customColorsList.appendChild(row);
+
+    // Wire events
+    const colorInput = row.querySelector('input[type="color"]');
+    const textInput = row.querySelector('input[type="text"]');
+    const preview = row.querySelector('.color-preview');
+    const removeBtn = row.querySelector('.btn-remove-color');
+
+    colorInput.addEventListener('input', (e) => {
+      const newColor = e.target.value;
+      textInput.value = newColor;
+      preview.style.background = newColor;
+      customChartColors[idx] = newColor;
+    });
+
+    textInput.addEventListener('input', (e) => {
+      const newColor = e.target.value;
+      if (/^#[0-9A-Fa-f]{6}$/.test(newColor)) {
+        colorInput.value = newColor;
+        preview.style.background = newColor;
+        customChartColors[idx] = newColor;
+      }
+    });
+
+    removeBtn.addEventListener('click', () => {
+      if (customChartColors.length > 1) {
+        customChartColors.splice(idx, 1);
+        renderCustomColorsList();
+      }
+    });
+  });
+}
+
+function addCustomColorRow() {
+  if (customChartColors.length >= 12) {
+    showToast('Maximum 12 colors allowed', 'error');
+    return;
+  }
+  // Add a new color (cycling through default palette)
+  const defaultPalette = CHART_COLOR_THEMES.default;
+  const newColor = defaultPalette[customChartColors.length % defaultPalette.length];
+  customChartColors.push(newColor);
+  renderCustomColorsList();
+}
+
+function resetCustomColors() {
+  customChartColors = [...CHART_COLOR_THEMES.default];
+  renderCustomColorsList();
+}
+
+function applyCustomColors() {
+  saveCustomColors();
+  closeCustomColorsModal();
+  if (currentView === 'chart') renderChart();
+  showToast('Custom colors applied', 'success');
+}
+
+function saveCustomColors() {
+  try {
+    localStorage.setItem('plateAnno_customColors', JSON.stringify(customChartColors));
+  } catch (e) { /* storage unavailable */ }
+}
+
+function loadCustomColors() {
+  try {
+    const saved = localStorage.getItem('plateAnno_customColors');
+    if (saved) {
+      customChartColors = JSON.parse(saved);
+    }
+    const savedTheme = localStorage.getItem('plateAnno_chartTheme');
+    if (savedTheme) {
+      chartTheme = savedTheme;
+      chartThemeSelect.value = savedTheme;
+      btnEditColors.style.display = savedTheme === 'custom' ? '' : 'none';
+    }
+  } catch (e) { /* corrupted, use default */ }
+}
+
+function saveChartTheme() {
+  try {
+    localStorage.setItem('plateAnno_chartTheme', chartTheme);
+  } catch (e) { /* storage unavailable */ }
+}
+
+// Load custom colors on init
+loadCustomColors();

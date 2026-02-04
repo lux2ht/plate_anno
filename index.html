@@ -113,10 +113,99 @@
         <button id="btn-view-table" class="view-btn active">Table</button>
         <button id="btn-view-csv" class="view-btn">CSV (Long)</button>
         <button id="btn-view-wide" class="view-btn">CSV (Wide)</button>
+        <button id="btn-view-chart" class="view-btn">Chart</button>
       </div>
     </div>
     <pre id="csv-preview" style="display:none">No annotations yet.</pre>
     <div id="table-view"></div>
+    <div id="chart-view" style="display:none">
+      <div class="chart-controls">
+        <div class="chart-control-group">
+          <label for="chart-type">Chart Type</label>
+          <select id="chart-type">
+            <option value="bar">Bar</option>
+            <option value="line">Line</option>
+            <option value="scatter">Scatter</option>
+            <option value="box">Box Plot</option>
+            <option value="violin">Violin Plot</option>
+            <option value="heatmap">Heatmap</option>
+            <option value="pie">Pie</option>
+          </select>
+        </div>
+        <div class="chart-control-group">
+          <label for="chart-x-axis">X-Axis</label>
+          <select id="chart-x-axis">
+            <option value="">(Select key)</option>
+          </select>
+        </div>
+        <div class="chart-control-group">
+          <label for="chart-y-axis">Y-Axis</label>
+          <select id="chart-y-axis">
+            <option value="_count">Count</option>
+          </select>
+        </div>
+        <div class="chart-control-group">
+          <label for="chart-group1">Group By</label>
+          <select id="chart-group1">
+            <option value="">(none)</option>
+          </select>
+        </div>
+        <div class="chart-control-group">
+          <label for="chart-group2">Group 2</label>
+          <select id="chart-group2">
+            <option value="">(none)</option>
+          </select>
+        </div>
+        <div class="chart-control-group">
+          <label for="chart-group3">Group 3</label>
+          <select id="chart-group3">
+            <option value="">(none)</option>
+          </select>
+        </div>
+        <div class="chart-control-group">
+          <label for="chart-aggregation">Aggregation</label>
+          <select id="chart-aggregation">
+            <option value="count">Count</option>
+            <option value="sum">Sum</option>
+            <option value="mean">Mean</option>
+            <option value="median">Median</option>
+            <option value="min">Min</option>
+            <option value="max">Max</option>
+          </select>
+        </div>
+        <div class="chart-control-group">
+          <label for="chart-theme">Color Theme</label>
+          <div class="theme-select-wrapper">
+            <select id="chart-theme">
+              <option value="default">Default</option>
+              <option value="colorblind">Colorblind-safe</option>
+              <option value="pastel">Pastel</option>
+              <option value="nature">Nature</option>
+              <option value="corporate">Corporate</option>
+              <option value="viridis">Viridis</option>
+              <option value="custom">Custom...</option>
+            </select>
+            <button id="btn-edit-colors" class="btn-edit-colors" title="Edit custom colors" style="display:none">Edit</button>
+          </div>
+        </div>
+        <div class="chart-control-group">
+          <label for="chart-error-bars">Error Bars</label>
+          <select id="chart-error-bars">
+            <option value="none">None</option>
+            <option value="sd">SD</option>
+            <option value="sem">SEM</option>
+          </select>
+        </div>
+        <div class="chart-control-group chart-data-source">
+          <label>Data Source</label>
+          <div class="radio-group">
+            <label><input type="radio" name="chart-source" value="all" checked> All</label>
+            <label><input type="radio" name="chart-source" value="selection"> Selection</label>
+          </div>
+        </div>
+      </div>
+      <div id="chart-container"></div>
+    </div>
   </div>
 
   <!-- Context menu -->
@@ -210,6 +299,26 @@
     </div>
   </div>
 
+  <!-- Custom colors modal -->
+  <div class="modal-overlay" id="custom-colors-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Custom Color Theme</h2>
+        <button class="modal-close" id="custom-colors-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-note">Define up to 12 colors for your custom theme. Colors are used in order for chart elements.</p>
+        <div id="custom-colors-list" class="custom-colors-list"></div>
+        <div class="custom-colors-actions">
+          <button id="btn-add-custom-color" class="secondary-btn">+ Add Color</button>
+          <button id="btn-reset-custom-colors" class="secondary-btn">Reset to Default</button>
+        </div>
+        <button id="btn-apply-custom-colors" class="primary-btn">Apply Colors</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
