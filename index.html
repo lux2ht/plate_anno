@@ -19,9 +19,10 @@
   </div>
   <div id="toast-container"></div>
 
-  <div class="top-panels">
-    <!-- Left: plate format selector + controls -->
-    <div class="panel panel-left">
+  <div class="main-layout" id="main-layout">
+    <div class="top-panels" id="top-panels">
+      <!-- Left: plate format selector + controls -->
+      <div class="panel panel-left" id="panel-left">
       <div class="controls-bar">
         <div class="control-group">
           <label for="plate-format">Plate Format</label>
@@ -87,10 +88,10 @@
       <input type="file" id="file-load" accept=".json" style="display:none">
 
       <div class="stats-bar" id="stats-bar"></div>
-    </div>
-
-    <!-- Right: annotation panel -->
-    <div class="panel panel-right">
+      </div>
+      <div class="panel-resizer vertical" id="side-resizer" role="separator" aria-label="Resize annotations panel" tabindex="0"></div>
+      <!-- Right: annotation panel -->
+      <div class="panel panel-right" id="panel-right">
       <h2>Annotations</h2>
       <div id="anno-panel">
         <p class="placeholder">Click a well to annotate.<br><br>
@@ -102,11 +103,13 @@
           Right-click a well for more options
         </p>
       </div>
+      </div>
     </div>
-  </div>
 
-  <!-- Bottom: CSV preview / Table view -->
-  <div class="panel panel-bottom">
+    <div class="panel-resizer horizontal" id="bottom-resizer" role="separator" aria-label="Resize data panel" tabindex="0"></div>
+
+    <!-- Bottom: CSV preview / Table view -->
+    <div class="panel panel-bottom" id="panel-bottom">
     <div class="bottom-header">
       <h2>Data View</h2>
       <div class="view-toggle">
@@ -196,6 +199,17 @@
             <option value="sem">SEM</option>
           </select>
         </div>
+        <div class="chart-control-group">
+          <label for="chart-plot-theme">Plot Theme</label>
+          <select id="chart-plot-theme">
+            <option value="default">Default</option>
+            <option value="white">White</option>
+            <option value="minimal">Minimal</option>
+            <option value="ggplot2">ggplot2</option>
+            <option value="seaborn">Seaborn</option>
+            <option value="presentation">Presentation</option>
+          </select>
+        </div>
         <div class="chart-control-group chart-data-source">
           <label>Data Source</label>
           <div class="radio-group">
@@ -203,8 +217,114 @@
             <label><input type="radio" name="chart-source" value="selection"> Selection</label>
           </div>
         </div>
+        <div class="chart-formatting-panel">
+          <div class="chart-formatting-heading">Formatting</div>
+          <div class="chart-formatting-grid">
+            <div class="chart-formatting-field full-width">
+              <label for="chart-title-input">Chart Title</label>
+              <input type="text" id="chart-title-input" data-chart-format="title" placeholder="Enter chart title">
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-x-label">X-Axis Label</label>
+              <input type="text" id="chart-x-label" data-chart-format="xLabel" placeholder="Auto from data">
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-y-label">Y-Axis Label</label>
+              <input type="text" id="chart-y-label" data-chart-format="yLabel" placeholder="Auto from data">
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-title-size">Title Size (pt)</label>
+              <input type="number" id="chart-title-size" data-chart-format="titleSize" min="10" max="48" step="1">
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-axis-title-size">Axis Title Size (pt)</label>
+              <input type="number" id="chart-axis-title-size" data-chart-format="axisTitleSize" min="8" max="36" step="1">
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-axis-title-color">Axis Title Color</label>
+              <input type="color" id="chart-axis-title-color" data-chart-format="axisTitleColor">
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-tick-size">Tick Font Size (pt)</label>
+              <input type="number" id="chart-tick-size" data-chart-format="tickFontSize" min="6" max="30" step="1">
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-tick-color">Tick Color</label>
+              <input type="color" id="chart-tick-color" data-chart-format="tickColor">
+            </div>
+            <div class="chart-formatting-field" id="chart-tick-angle-group">
+              <label for="chart-tick-angle">Tick Angle</label>
+              <select id="chart-tick-angle" data-chart-format="tickAngle">
+                <option value="0">0°</option>
+                <option value="-45">-45°</option>
+                <option value="-90">-90°</option>
+              </select>
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-legend-position">Legend Position</label>
+              <select id="chart-legend-position" data-chart-format="legendPosition">
+                <option value="auto">Auto</option>
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+                <option value="right">Right</option>
+                <option value="hidden">Hidden</option>
+              </select>
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-legend-title">Legend Title</label>
+              <input type="text" id="chart-legend-title" data-chart-format="legendTitle" placeholder="Optional">
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-legend-font-size">Legend Font Size (pt)</label>
+              <input type="number" id="chart-legend-font-size" data-chart-format="legendFontSize" min="6" max="30" step="1">
+            </div>
+          </div>
+          <div class="chart-formatting-toggle-row">
+            <label class="chart-toggle">
+              <input type="checkbox" id="chart-grid-x" data-chart-format="showGridX">
+              Show X gridlines
+            </label>
+            <label class="chart-toggle">
+              <input type="checkbox" id="chart-grid-y" data-chart-format="showGridY">
+              Show Y gridlines
+            </label>
+          </div>
+          <div class="chart-formatting-subheading">Axis Scaling</div>
+          <div class="chart-formatting-grid axis-scaling-grid">
+            <div class="chart-formatting-field">
+              <label for="chart-x-scale">X-Axis Scale</label>
+              <select id="chart-x-scale" data-chart-format="xScale">
+                <option value="auto">Auto</option>
+                <option value="linear">Linear</option>
+                <option value="log">Log</option>
+              </select>
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-y-scale">Y-Axis Scale</label>
+              <select id="chart-y-scale" data-chart-format="yScale">
+                <option value="auto">Auto</option>
+                <option value="linear">Linear</option>
+                <option value="log">Log</option>
+              </select>
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-y-min">Y-Min</label>
+              <input type="number" id="chart-y-min" data-chart-format="yMin" step="any" placeholder="auto" inputmode="decimal">
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-y-max">Y-Max</label>
+              <input type="number" id="chart-y-max" data-chart-format="yMax" step="any" placeholder="auto" inputmode="decimal">
+            </div>
+            <div class="chart-formatting-field">
+              <label for="chart-y-tick">Y Tick Step</label>
+              <input type="number" id="chart-y-tick" data-chart-format="yTickStep" step="any" placeholder="auto" inputmode="decimal">
+            </div>
+          </div>
+          <p class="chart-formatting-note">Log scale requires positive values. Tick step applies to linear Y axes.</p>
+        </div>
       </div>
       <div id="chart-container"></div>
+    </div>
     </div>
   </div>
 

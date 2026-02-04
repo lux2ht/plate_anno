@@ -38,6 +38,51 @@ const CHART_COLOR_THEMES = {
   viridis: ['#440154', '#482878', '#3E4A89', '#31688E', '#26828E', '#1F9E89', '#35B779', '#6DCD59', '#B4DE2C', '#FDE725', '#21918C', '#5DC863']
 };
 
+// Plot theme presets (GraphPad-style)
+const CHART_PLOT_THEMES = {
+  default: null,
+  white: {
+    paper: '#ffffff',
+    plot: '#ffffff',
+    fontColor: '#1f2933',
+    gridColor: '#d1d5db',
+    axisLineColor: '#94a3b8'
+  },
+  minimal: {
+    paper: '#f8fafc',
+    plot: '#fafafa',
+    fontColor: '#111827',
+    gridColor: '#e2e8f0',
+    axisLineColor: '#94a3b8'
+  },
+  ggplot2: {
+    paper: '#f3f4f6',
+    plot: '#fdfdfd',
+    fontColor: '#1f2937',
+    gridColor: '#e0e0e0',
+    axisLineColor: '#9ca3af'
+  },
+  seaborn: {
+    paper: '#edf2fb',
+    plot: '#f8fafc',
+    fontColor: '#1e293b',
+    gridColor: '#cbd5f5',
+    axisLineColor: '#64748b'
+  },
+  presentation: {
+    paper: '#111827',
+    plot: '#1f2937',
+    fontColor: '#f8fafc',
+    gridColor: '#374151',
+    axisLineColor: '#9ca3af'
+  }
+};
+
+const CHART_PLOT_THEME_STORAGE_KEY = 'plateAnno_plotTheme';
+const CHART_FORMATTING_STORAGE_KEY = 'plateAnno_chartFormatting';
+const OPTIONAL_NUMERIC_FORMAT_FIELDS = new Set(['yMin', 'yMax', 'yTickStep']);
+const PANEL_LAYOUT_STORAGE_KEY = 'plateAnno_panelLayout';
+
 const STORAGE_KEY = 'plateAnno_state';
 
 // Common annotation key presets for biology experiments
@@ -118,6 +163,7 @@ const chartGroup3Select = document.getElementById('chart-group3');
 const chartAggregationSelect = document.getElementById('chart-aggregation');
 const chartThemeSelect = document.getElementById('chart-theme');
 const chartErrorBarsSelect = document.getElementById('chart-error-bars');
+const chartPlotThemeSelect = document.getElementById('chart-plot-theme');
 const btnEditColors = document.getElementById('btn-edit-colors');
 const customColorsModal = document.getElementById('custom-colors-modal');
 const customColorsClose = document.getElementById('custom-colors-close');
@@ -125,6 +171,28 @@ const customColorsList = document.getElementById('custom-colors-list');
 const btnAddCustomColor = document.getElementById('btn-add-custom-color');
 const btnResetCustomColors = document.getElementById('btn-reset-custom-colors');
 const btnApplyCustomColors = document.getElementById('btn-apply-custom-colors');
+const chartTitleInput = document.getElementById('chart-title-input');
+const chartXAxisLabelInput = document.getElementById('chart-x-label');
+const chartYAxisLabelInput = document.getElementById('chart-y-label');
+const chartTitleSizeInput = document.getElementById('chart-title-size');
+const chartAxisTitleSizeInput = document.getElementById('chart-axis-title-size');
+const chartAxisTitleColorInput = document.getElementById('chart-axis-title-color');
+const chartTickSizeInput = document.getElementById('chart-tick-size');
+const chartTickColorInput = document.getElementById('chart-tick-color');
+const chartTickAngleSelect = document.getElementById('chart-tick-angle');
+const chartTickAngleGroup = document.getElementById('chart-tick-angle-group');
+const chartLegendPositionSelect = document.getElementById('chart-legend-position');
+const chartLegendTitleInput = document.getElementById('chart-legend-title');
+const chartLegendFontSizeInput = document.getElementById('chart-legend-font-size');
+const chartGridXCheckbox = document.getElementById('chart-grid-x');
+const chartGridYCheckbox = document.getElementById('chart-grid-y');
+const chartFormattingInputs = Array.from(document.querySelectorAll('[data-chart-format]'));
+const topPanelsEl = document.getElementById('top-panels');
+const panelLeftEl = document.getElementById('panel-left');
+const panelRightEl = document.getElementById('panel-right');
+const panelBottomEl = document.getElementById('panel-bottom');
+const sideResizer = document.getElementById('side-resizer');
+const bottomResizer = document.getElementById('bottom-resizer');
 
 // Context menu state
 let contextWell = null;
@@ -141,6 +209,45 @@ let chartAggregation = 'count';
 let chartTheme = 'default';
 let chartErrorBars = 'none';
 let chartDataSource = 'all';
+let chartPlotTheme = 'default';
+let panelLayout = { leftWidth: 60, bottomHeight: 320 };
+const DEFAULT_CHART_FORMATTING = {
+  title: '',
+  xLabel: '',
+  yLabel: '',
+  titleSize: 18,
+  axisTitleSize: 14,
+  axisTitleColor: '#1f2937',
+  tickFontSize: 11,
+  tickColor: '#1f2937',
+  tickAngle: '-45',
+  legendPosition: 'auto',
+  legendTitle: '',
+  legendFontSize: 11,
+  showGridX: true,
+  showGridY: true,
+  xScale: 'auto',
+  yScale: 'auto',
+  yMin: '',
+  yMax: '',
+  yTickStep: ''
+};
+let chartFormatting = { ...DEFAULT_CHART_FORMATTING };
+const axisWarningState = { x: '', y: '' };
+const panelResizeState = {
+  activeAxis: null,
+  startX: 0,
+  startY: 0,
+  startLeftWidth: 0,
+  totalWidth: 0,
+  startBottomHeight: 0
+};
+const PANEL_LAYOUT_LIMITS = {
+  minLeft: 20,
+  maxLeft: 80,
+  minBottom: 200,
+  maxBottom: 900
+};
 let customChartColors = [...CHART_COLOR_THEMES.default]; // Default custom colors
 
 // ---- Init ----
@@ -196,6 +303,7 @@ btnAddCustomColor.addEventListener('click', addCustomColorRow);
 btnResetCustomColors.addEventListener('click', resetCustomColors);
 btnApplyCustomColors.addEventListener('click', applyCustomColors);
 chartThemeSelect.addEventListener('change', onThemeChange);
+chartPlotThemeSelect.addEventListener('change', onPlotThemeChange);
 
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
@@ -1993,6 +2101,7 @@ function toggleDarkMode() {
   const isDark = document.body.classList.contains('dark');
   localStorage.setItem('plateAnno_dark', isDark ? '1' : '0');
   showToast(isDark ? 'Dark mode enabled' : 'Light mode enabled', 'info');
+  if (currentView === 'chart') renderChart();
 }
 
 // ============================================================
@@ -2282,19 +2391,25 @@ function aggregate(values, method) {
 function groupData(data, xKey, groupKeys, valueKey, aggregation) {
   if (!xKey) return [];
 
+  const resolvedGroupKeys = groupKeys.filter(Boolean);
   const groups = {};
   for (const row of data) {
     const xVal = row[xKey] || 'N/A';
-    const groupVals = groupKeys.filter(Boolean).map(k => row[k] || 'N/A');
+    const groupVals = resolvedGroupKeys.map(k => row[k] || 'N/A');
     const groupKey = groupVals.length > 0 ? groupVals.join('|') : '_all';
     const fullKey = `${xVal}|||${groupKey}`;
 
     if (!groups[fullKey]) {
+      const labelMap = {};
+      resolvedGroupKeys.forEach((key, idx) => {
+        labelMap[key] = groupVals[idx];
+      });
       groups[fullKey] = {
         x: xVal,
         groupLabels: groupVals,
         groupKey,
-        values: []
+        values: [],
+        labelMap
       };
     }
 
@@ -2319,6 +2434,7 @@ function groupData(data, xKey, groupKeys, valueKey, aggregation) {
       x: g.x,
       groupLabels: g.groupLabels,
       groupKey: g.groupKey,
+      labelMap: g.labelMap || {},
       value: aggregate(values, aggregation),
       rawValues: values,
       mean,
@@ -2338,6 +2454,15 @@ function getThemeColors(count) {
     colors.push(palette[i % palette.length]);
   }
   return colors;
+}
+
+function uniqueValues(arr) {
+  const seen = new Set();
+  return arr.filter((value) => {
+    if (seen.has(value)) return false;
+    seen.add(value);
+    return true;
+  });
 }
 
 function renderChart() {
@@ -2367,10 +2492,8 @@ function renderChart() {
   }
 
   const isDark = document.body.classList.contains('dark');
-
-  // Calculate legend position based on number of groups
   const uniqueGroups = [...new Set(grouped.map(g => g.groupKey))];
-  const hasLegend = groupKeys.length > 0 || chartType === 'pie';
+  let hasLegend = groupKeys.length > 0 || chartType === 'pie';
   const manyLegendItems = uniqueGroups.length > 4;
 
   const layout = {
@@ -2378,7 +2501,7 @@ function renderChart() {
     paper_bgcolor: isDark ? '#1e293b' : '#fff',
     plot_bgcolor: isDark ? '#1e293b' : '#fff',
     font: { color: isDark ? '#e0e0e0' : '#333', size: 12 },
-    margin: { t: 30, r: manyLegendItems ? 120 : 30, b: hasLegend && !manyLegendItems ? 80 : 20, l: 20 },
+    margin: { t: 30, r: manyLegendItems ? 120 : 30, b: hasLegend && !manyLegendItems ? 80 : 24, l: 40 },
     autosize: true,
     showlegend: hasLegend,
     legend: manyLegendItems ? {
@@ -2388,7 +2511,7 @@ function renderChart() {
       y: 1,
       yanchor: 'top',
       bgcolor: 'rgba(0,0,0,0)',
-      font: { size: 11 }
+      font: { size: chartFormatting.legendFontSize || 11 }
     } : {
       orientation: 'h',
       x: 0.5,
@@ -2396,11 +2519,11 @@ function renderChart() {
       y: -0.35,
       yanchor: 'top',
       bgcolor: 'rgba(0,0,0,0)',
-      font: { size: 11 }
+      font: { size: chartFormatting.legendFontSize || 11 }
     },
     xaxis: {
       title: { text: chartXAxis, standoff: 15 },
-      tickangle: -45,
+      tickangle: parseInt(chartFormatting.tickAngle, 10) || 0,
       automargin: true,
       gridcolor: isDark ? '#334155' : '#e5e7eb',
       linecolor: isDark ? '#475569' : '#ccc'
@@ -2410,19 +2533,33 @@ function renderChart() {
       automargin: true,
       gridcolor: isDark ? '#334155' : '#e5e7eb',
       linecolor: isDark ? '#475569' : '#ccc'
-    }
+    },
+    annotations: []
   };
 
   let traces = [];
+  let multiCategoryAxis = false;
+  let legendForceHidden = false;
+  let axisTierKeys = { secondary: null, tertiary: null };
+  const chartTypeLower = chartType;
 
   switch (chartType) {
     case 'bar':
-    case 'line':
-      traces = buildBarOrLineTraces(grouped, groupKeys, chartType);
+    case 'line': {
+      const barResult = buildBarOrLineTraces(grouped, groupKeys, chartType, {
+        primary: chartGroup1 || null,
+        secondary: chartGroup2 || null,
+        tertiary: chartGroup3 || null
+      });
+      traces = barResult.traces;
+      multiCategoryAxis = barResult.multiCategory;
+      legendForceHidden = barResult.forceHideLegend;
+      axisTierKeys = barResult.axisTierKeys || axisTierKeys;
       if (chartType === 'bar') {
-        layout.barmode = groupKeys.length > 0 ? 'group' : 'relative';
+        layout.barmode = multiCategoryAxis ? 'group' : (groupKeys.length > 0 ? 'group' : 'relative');
       }
       break;
+    }
     case 'scatter':
       traces = buildScatterTrace(data);
       break;
@@ -2437,20 +2574,40 @@ function renderChart() {
       break;
     case 'pie':
       traces = buildPieTrace(grouped);
-      layout.showlegend = true;
-      // Pie charts always need legend on the right for clarity
-      layout.legend = {
-        orientation: 'v',
-        x: 1.02,
-        xanchor: 'left',
-        y: 0.5,
-        yanchor: 'middle',
-        bgcolor: 'rgba(0,0,0,0)',
-        font: { size: 11 }
-      };
-      layout.margin.r = 120;
       break;
   }
+
+  applyPlotThemeSettings(layout, isDark);
+
+  hasLegend = hasLegend && !legendForceHidden;
+
+  const ySamples = grouped
+    .map(g => (typeof g.value === 'number' ? g.value : Number(g.value)))
+    .filter(v => typeof v === 'number' && Number.isFinite(v));
+  const xNumericCandidates = grouped.map(g => {
+    if (typeof g.x === 'number') return g.x;
+    const parsed = Number(g.x);
+    return Number.isFinite(parsed) ? parsed : null;
+  });
+  const xSamples = xNumericCandidates.filter(v => v !== null);
+  const xValuesComplete = xSamples.length === grouped.length;
+  const allowNumericXScaling = !['bar', 'violin', 'box', 'heatmap', 'pie'].includes(chartTypeLower);
+
+  applyChartFormattingOptions(layout, {
+    autoXTitle: chartXAxis,
+    autoYTitle: chartYAxis === '_count' ? 'Count' : `${chartYAxis} (${chartAggregation})`,
+    multiCategoryAxis,
+    axisTierKeys,
+    hasLegend,
+    manyLegendItems,
+    chartType: chartTypeLower,
+    yValues: ySamples,
+    xValues: xSamples,
+    allowNumericXScaling,
+    xValuesComplete
+  });
+
+  setTickAngleDisabled(multiCategoryAxis);
 
   const config = {
     responsive: true,
@@ -2468,17 +2625,21 @@ function renderChart() {
   Plotly.newPlot(chartContainer, traces, layout, config);
 }
 
-function buildBarOrLineTraces(grouped, groupKeys, type) {
+function buildBarOrLineTraces(grouped, groupKeys, type, groupingMeta = {}) {
+  const hasPrimary = Boolean(groupingMeta.primary);
+  const hasSecondary = Boolean(groupingMeta.secondary);
+  const hasTertiary = Boolean(groupingMeta.tertiary);
+  const useMultiCategory = type === 'bar' && (hasSecondary || hasTertiary);
   const traces = [];
 
-  if (groupKeys.length === 0) {
+  if (groupKeys.length === 0 || (!hasPrimary && !useMultiCategory)) {
     // Simple bar/line chart
-    const xVals = [...new Set(grouped.map(g => g.x))];
+    const xVals = uniqueValues(grouped.map(g => g.x));
     const yVals = xVals.map(x => {
       const match = grouped.find(g => g.x === x);
       return match ? match.value : 0;
     });
-    const colors = getThemeColors(xVals.length);
+    const colors = getThemeColors(xVals.length || 1);
 
     const trace = {
       x: xVals,
@@ -2490,7 +2651,6 @@ function buildBarOrLineTraces(grouped, groupKeys, type) {
       name: ''
     };
 
-    // Add error bars
     if (chartErrorBars !== 'none' && chartAggregation === 'mean') {
       const errors = xVals.map(x => {
         const match = grouped.find(g => g.x === x);
@@ -2504,33 +2664,95 @@ function buildBarOrLineTraces(grouped, groupKeys, type) {
     }
 
     traces.push(trace);
-  } else {
-    // Grouped bar/line chart
-    const uniqueGroups = [...new Set(grouped.map(g => g.groupKey))];
-    const xVals = [...new Set(grouped.map(g => g.x))];
-    const colors = getThemeColors(uniqueGroups.length);
+    return {
+      traces,
+      multiCategory: false,
+      axisTierKeys: { secondary: null, tertiary: null },
+      forceHideLegend: !hasPrimary && groupKeys.length === 0
+    };
+  }
 
-    uniqueGroups.forEach((groupKey, idx) => {
-      const groupData = grouped.filter(g => g.groupKey === groupKey);
-      const yVals = xVals.map(x => {
-        const match = groupData.find(g => g.x === x);
+  if (useMultiCategory) {
+    const normalize = (value) => (value === undefined || value === null || value === '' ? 'N/A' : value);
+    const xValues = uniqueValues(grouped.map(g => g.x));
+    const secondaryValues = hasSecondary
+      ? uniqueValues(grouped.map(g => normalize(g.labelMap[ groupingMeta.secondary ])))
+      : [null];
+    const tertiaryValues = hasTertiary
+      ? uniqueValues(grouped.map(g => normalize(g.labelMap[ groupingMeta.tertiary ])))
+      : [null];
+
+    const combinations = [];
+    xValues.forEach(base => {
+      secondaryValues.forEach(sec => {
+        tertiaryValues.forEach(ter => {
+          const matchExists = grouped.some(g => {
+            const secLabel = hasSecondary ? normalize(g.labelMap[groupingMeta.secondary]) : null;
+            const terLabel = hasTertiary ? normalize(g.labelMap[groupingMeta.tertiary]) : null;
+            return g.x === base &&
+              (!hasSecondary || secLabel === sec) &&
+              (!hasTertiary || terLabel === ter);
+          });
+          if (!matchExists) return;
+          const parts = [];
+          if (hasSecondary) parts.push(sec);
+          if (hasTertiary) parts.push(ter);
+          parts.push(base);
+          combinations.push({
+            parts,
+            base,
+            secondary: sec,
+            tertiary: ter
+          });
+        });
+      });
+    });
+
+    const primaryValues = hasPrimary
+      ? uniqueValues(grouped.map(g => normalize(g.labelMap[groupingMeta.primary])))
+      : ['All wells'];
+    const colors = getThemeColors(primaryValues.length || 1);
+    const multiX = combinations.map(c => c.parts);
+    const lookup = new Map();
+    grouped.forEach(g => {
+      const key = [
+        hasPrimary ? normalize(g.labelMap[groupingMeta.primary]) : 'All wells',
+        hasSecondary ? normalize(g.labelMap[groupingMeta.secondary]) : 'N/A',
+        hasTertiary ? normalize(g.labelMap[groupingMeta.tertiary]) : 'N/A',
+        g.x
+      ].join('|||');
+      lookup.set(key, g);
+    });
+
+    primaryValues.forEach((primaryLabel, idx) => {
+      const yVals = combinations.map(combo => {
+        const key = [
+          hasPrimary ? primaryLabel : 'All wells',
+          hasSecondary ? combo.secondary : 'N/A',
+          hasTertiary ? combo.tertiary : 'N/A',
+          combo.base
+        ].join('|||');
+        const match = lookup.get(key);
         return match ? match.value : 0;
       });
 
       const trace = {
-        x: xVals,
+        x: multiX,
         y: yVals,
-        type: type === 'line' ? 'scatter' : 'bar',
-        mode: type === 'line' ? 'lines+markers' : undefined,
-        name: groupKey.replace(/\|/g, ', '),
-        marker: { color: colors[idx] },
-        line: type === 'line' ? { color: colors[idx] } : undefined
+        type: 'bar',
+        name: hasPrimary ? primaryLabel : 'All wells',
+        marker: { color: colors[idx] }
       };
 
-      // Add error bars
       if (chartErrorBars !== 'none' && chartAggregation === 'mean') {
-        const errors = xVals.map(x => {
-          const match = groupData.find(g => g.x === x);
+        const errors = combinations.map(combo => {
+          const key = [
+            hasPrimary ? primaryLabel : 'All wells',
+            hasSecondary ? combo.secondary : 'N/A',
+            hasTertiary ? combo.tertiary : 'N/A',
+            combo.base
+          ].join('|||');
+          const match = lookup.get(key);
           return match ? (chartErrorBars === 'sd' ? match.sd : match.sem) : 0;
         });
         trace.error_y = {
@@ -2542,9 +2764,61 @@ function buildBarOrLineTraces(grouped, groupKeys, type) {
 
       traces.push(trace);
     });
+
+    return {
+      traces,
+      multiCategory: true,
+      axisTierKeys: {
+        secondary: hasSecondary ? groupingMeta.secondary : null,
+        tertiary: hasTertiary ? groupingMeta.tertiary : null
+      },
+      forceHideLegend: !hasPrimary
+    };
   }
 
-  return traces;
+  // Standard grouped chart (line or bar without multi-category axis)
+  const uniqueGroups = uniqueValues(grouped.map(g => g.groupKey));
+  const xVals = uniqueValues(grouped.map(g => g.x));
+  const colors = getThemeColors(uniqueGroups.length || 1);
+
+  uniqueGroups.forEach((groupKey, idx) => {
+    const groupData = grouped.filter(g => g.groupKey === groupKey);
+    const yVals = xVals.map(x => {
+      const match = groupData.find(g => g.x === x);
+      return match ? match.value : 0;
+    });
+
+    const trace = {
+      x: xVals,
+      y: yVals,
+      type: type === 'line' ? 'scatter' : 'bar',
+      mode: type === 'line' ? 'lines+markers' : undefined,
+      name: groupKey.replace(/\|/g, ', '),
+      marker: { color: colors[idx] },
+      line: type === 'line' ? { color: colors[idx] } : undefined
+    };
+
+    if (chartErrorBars !== 'none' && chartAggregation === 'mean') {
+      const errors = xVals.map(x => {
+        const match = groupData.find(g => g.x === x);
+        return match ? (chartErrorBars === 'sd' ? match.sd : match.sem) : 0;
+      });
+      trace.error_y = {
+        type: 'data',
+        array: errors,
+        visible: true
+      };
+    }
+
+    traces.push(trace);
+  });
+
+  return {
+    traces,
+    multiCategory: false,
+    axisTierKeys: { secondary: null, tertiary: null },
+    forceHideLegend: false
+  };
 }
 
 function buildScatterTrace(data) {
@@ -2737,6 +3011,423 @@ function buildPieTrace(grouped) {
 }
 
 // ============================================================
+// Chart formatting helpers
+// ============================================================
+
+function applyPlotThemeSettings(layout, isDark) {
+  const preset = chartPlotTheme !== 'default' ? CHART_PLOT_THEMES[chartPlotTheme] : null;
+  if (!preset) {
+    layout.paper_bgcolor = isDark ? '#1e293b' : '#fff';
+    layout.plot_bgcolor = isDark ? '#1e293b' : '#fff';
+    layout.font.color = isDark ? '#e0e0e0' : '#333';
+    layout.xaxis.gridcolor = isDark ? '#334155' : '#e5e7eb';
+    layout.yaxis.gridcolor = isDark ? '#334155' : '#e5e7eb';
+    layout.xaxis.linecolor = isDark ? '#475569' : '#ccc';
+    layout.yaxis.linecolor = isDark ? '#475569' : '#ccc';
+    return;
+  }
+
+  layout.paper_bgcolor = preset.paper;
+  layout.plot_bgcolor = preset.plot;
+  layout.font.color = preset.fontColor;
+  layout.xaxis.gridcolor = preset.gridColor;
+  layout.yaxis.gridcolor = preset.gridColor;
+  layout.xaxis.linecolor = preset.axisLineColor;
+  layout.yaxis.linecolor = preset.axisLineColor;
+}
+
+function applyChartFormattingOptions(layout, options) {
+  const {
+    autoXTitle,
+    autoYTitle,
+    multiCategoryAxis,
+    axisTierKeys,
+    hasLegend,
+    manyLegendItems,
+    chartType,
+    yValues = [],
+    xValues = [],
+    allowNumericXScaling = true,
+    xValuesComplete = false
+  } = options;
+
+  const titleSize = Number(chartFormatting.titleSize) || DEFAULT_CHART_FORMATTING.titleSize;
+  const axisTitleSize = Number(chartFormatting.axisTitleSize) || DEFAULT_CHART_FORMATTING.axisTitleSize;
+  const axisTitleColor = chartFormatting.axisTitleColor || DEFAULT_CHART_FORMATTING.axisTitleColor;
+  const tickFontSize = Number(chartFormatting.tickFontSize) || DEFAULT_CHART_FORMATTING.tickFontSize;
+  const tickColor = chartFormatting.tickColor || DEFAULT_CHART_FORMATTING.tickColor;
+  const legendFontSize = Number(chartFormatting.legendFontSize) || DEFAULT_CHART_FORMATTING.legendFontSize;
+  const legendPosition = chartFormatting.legendPosition || 'auto';
+  const legendTitle = (chartFormatting.legendTitle || '').trim();
+
+  layout.title = layout.title || {};
+  layout.title.text = (chartFormatting.title || '').trim();
+  layout.title.font = { size: titleSize, color: layout.font.color };
+
+  const xTitle = (chartFormatting.xLabel || '').trim() || autoXTitle || '';
+  const yTitle = (chartFormatting.yLabel || '').trim() || autoYTitle || '';
+
+  layout.xaxis.title = layout.xaxis.title || {};
+  layout.xaxis.title.text = xTitle;
+  layout.xaxis.title.font = { size: axisTitleSize, color: axisTitleColor };
+
+  layout.yaxis.title = layout.yaxis.title || {};
+  layout.yaxis.title.text = yTitle;
+  layout.yaxis.title.font = { size: axisTitleSize, color: axisTitleColor };
+
+  const parsedAngle = parseInt(chartFormatting.tickAngle, 10);
+  layout.xaxis.tickangle = multiCategoryAxis ? 0 : (Number.isFinite(parsedAngle) ? parsedAngle : parseInt(DEFAULT_CHART_FORMATTING.tickAngle, 10));
+  layout.xaxis.tickfont = { size: tickFontSize, color: tickColor };
+  layout.yaxis.tickfont = { size: tickFontSize, color: tickColor };
+
+  layout.xaxis.showgrid = Boolean(chartFormatting.showGridX);
+  layout.yaxis.showgrid = Boolean(chartFormatting.showGridY);
+  if (!layout.xaxis.showgrid) layout.xaxis.gridcolor = 'rgba(0,0,0,0)';
+  if (!layout.yaxis.showgrid) layout.yaxis.gridcolor = 'rgba(0,0,0,0)';
+
+  const xScaleChoice = chartFormatting.xScale || 'auto';
+  const yScaleChoice = chartFormatting.yScale || 'auto';
+
+  delete layout.xaxis.type;
+  delete layout.xaxis.rangemode;
+  if (multiCategoryAxis) {
+    layout.xaxis.type = 'multicategory';
+    if (xScaleChoice !== 'auto') {
+      warnAxisOnce('x', 'X-axis scaling is unavailable for grouped categorical bars.');
+    } else {
+      clearAxisWarning('x');
+    }
+  } else if (!allowNumericXScaling) {
+    if (xScaleChoice !== 'auto') {
+      warnAxisOnce('x', 'X-axis scaling is only available for numeric charts.');
+    } else {
+      clearAxisWarning('x');
+    }
+  } else {
+    if (xScaleChoice === 'log') {
+      if (xValuesComplete && hasOnlyPositiveNumbers(xValues)) {
+        layout.xaxis.type = 'log';
+        layout.xaxis.rangemode = 'tozero';
+        clearAxisWarning('x');
+      } else {
+        warnAxisOnce('x', 'X-axis log scale requires positive numeric values.');
+      }
+    } else if (xScaleChoice === 'linear') {
+      if (xValuesComplete) {
+        layout.xaxis.type = 'linear';
+        clearAxisWarning('x');
+      } else {
+        warnAxisOnce('x', 'X-axis linear scaling is only available when the axis is numeric.');
+      }
+    } else {
+      clearAxisWarning('x');
+    }
+  }
+
+  delete layout.yaxis.type;
+  delete layout.yaxis.rangemode;
+  if (yScaleChoice === 'log') {
+    if (hasOnlyPositiveNumbers(yValues)) {
+      layout.yaxis.type = 'log';
+      layout.yaxis.rangemode = 'tozero';
+      clearAxisWarning('y');
+    } else {
+      warnAxisOnce('y', 'Y-axis log scale requires positive values.');
+      layout.yaxis.type = 'linear';
+    }
+  } else if (yScaleChoice === 'linear') {
+    layout.yaxis.type = 'linear';
+    clearAxisWarning('y');
+  } else {
+    clearAxisWarning('y');
+  }
+
+  const yMin = parseOptionalNumber(chartFormatting.yMin);
+  const yMax = parseOptionalNumber(chartFormatting.yMax);
+  let rangeApplied = false;
+  if (yMin !== null || yMax !== null) {
+    const autoMin = yValues.length ? Math.min(...yValues) : null;
+    const autoMax = yValues.length ? Math.max(...yValues) : null;
+    let lower = yMin !== null ? yMin : autoMin;
+    let upper = yMax !== null ? yMax : autoMax;
+    if (lower === null || upper === null) {
+      warnAxisOnce('y', 'Provide both Y min and max (data unavailable for auto bound).');
+    } else if (lower >= upper) {
+      warnAxisOnce('y', 'Y-axis min must be less than max.');
+    } else if (layout.yaxis.type === 'log' && (lower <= 0 || upper <= 0)) {
+      warnAxisOnce('y', 'Log-scale Y ranges must be greater than zero.');
+    } else {
+      layout.yaxis.range = [lower, upper];
+      rangeApplied = true;
+    }
+  }
+  if (!rangeApplied) {
+    delete layout.yaxis.range;
+  }
+
+  const yTick = parseOptionalNumber(chartFormatting.yTickStep);
+  if (yTick !== null) {
+    if (yTick <= 0) {
+      warnAxisOnce('y', 'Y-axis tick step must be greater than zero.');
+      delete layout.yaxis.dtick;
+    } else if (layout.yaxis.type === 'log') {
+      warnAxisOnce('y', 'Y-axis tick step is only applied on linear scales.');
+      delete layout.yaxis.dtick;
+    } else {
+      layout.yaxis.dtick = yTick;
+    }
+  } else {
+    delete layout.yaxis.dtick;
+  }
+
+  layout.showlegend = hasLegend && legendPosition !== 'hidden';
+  if (layout.showlegend) {
+    let legendConfig;
+    switch (legendPosition) {
+      case 'top':
+        legendConfig = {
+          orientation: 'h',
+          x: 0.5,
+          xanchor: 'center',
+          y: 1.12,
+          yanchor: 'bottom'
+        };
+        layout.margin.t = Math.max(layout.margin.t, 80);
+        break;
+      case 'bottom':
+        legendConfig = {
+          orientation: 'h',
+          x: 0.5,
+          xanchor: 'center',
+          y: -0.3,
+          yanchor: 'top'
+        };
+        layout.margin.b = Math.max(layout.margin.b, 90);
+        break;
+      case 'right':
+        legendConfig = {
+          orientation: 'v',
+          x: 1.02,
+          xanchor: 'left',
+          y: 1,
+          yanchor: 'top'
+        };
+        layout.margin.r = Math.max(layout.margin.r, 120);
+        break;
+      default:
+        legendConfig = manyLegendItems ? {
+          orientation: 'v',
+          x: 1.02,
+          xanchor: 'left',
+          y: 1,
+          yanchor: 'top'
+        } : {
+          orientation: 'h',
+          x: 0.5,
+          xanchor: 'center',
+          y: -0.35,
+          yanchor: 'top'
+        };
+        if (!manyLegendItems) {
+          layout.margin.b = Math.max(layout.margin.b, 80);
+        } else {
+          layout.margin.r = Math.max(layout.margin.r, 120);
+        }
+        break;
+    }
+    legendConfig.bgcolor = 'rgba(0,0,0,0)';
+    legendConfig.font = { size: legendFontSize, color: layout.font.color };
+    if (legendTitle) {
+      legendConfig.title = {
+        text: legendTitle,
+        font: { size: legendFontSize, color: layout.font.color }
+      };
+    }
+    layout.legend = legendConfig;
+  } else {
+    layout.legend = undefined;
+  }
+
+  if (multiCategoryAxis) {
+    layout.xaxis.type = 'multicategory';
+    layout.margin.b = Math.max(layout.margin.b, 110);
+    const tierLabels = [];
+    if (axisTierKeys.secondary) tierLabels.push(axisTierKeys.secondary);
+    if (axisTierKeys.tertiary) tierLabels.push(axisTierKeys.tertiary);
+    tierLabels.forEach((label, idx) => {
+      layout.annotations.push({
+        text: label,
+        xref: 'paper',
+        x: 0,
+        xanchor: 'left',
+        yref: 'paper',
+        y: -0.1 - (idx * 0.05),
+        showarrow: false,
+        font: { size: 11, color: layout.font.color },
+        align: 'left'
+      });
+    });
+  }
+}
+
+function setTickAngleDisabled(disabled) {
+  if (!chartTickAngleSelect) return;
+  chartTickAngleSelect.disabled = disabled;
+  if (chartTickAngleGroup) {
+    chartTickAngleGroup.classList.toggle('disabled', disabled);
+    chartTickAngleGroup.title = disabled ? 'Tick angle disabled for grouped axes' : '';
+  }
+}
+
+function warnAxisOnce(axis, message) {
+  if (axisWarningState[axis] === message) return;
+  axisWarningState[axis] = message;
+  showToast(message, 'warning', 4000);
+}
+
+function clearAxisWarning(axis) {
+  axisWarningState[axis] = '';
+}
+
+function parseOptionalNumber(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const num = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+function hasOnlyPositiveNumbers(values) {
+  return values.length === 0 ? false : values.every(v => typeof v === 'number' && v > 0);
+}
+
+function clamp(value, min, max) {
+  if (min > max) return value;
+  return Math.min(max, Math.max(min, value));
+}
+
+function loadPanelLayout() {
+  try {
+    const saved = localStorage.getItem(PANEL_LAYOUT_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (typeof parsed.leftWidth === 'number') panelLayout.leftWidth = parsed.leftWidth;
+      if (typeof parsed.bottomHeight === 'number') panelLayout.bottomHeight = parsed.bottomHeight;
+    }
+  } catch (e) { /* ignore invalid layout */ }
+}
+
+function savePanelLayout() {
+  try {
+    localStorage.setItem(PANEL_LAYOUT_STORAGE_KEY, JSON.stringify(panelLayout));
+  } catch (e) { /* storage unavailable */ }
+}
+
+function applyPanelLayout() {
+  if (!panelLeftEl || !panelRightEl || !panelBottomEl || !topPanelsEl) return;
+  if (isTopPanelsStacked()) {
+    panelLeftEl.style.flexBasis = '';
+    panelRightEl.style.flexBasis = '';
+    panelBottomEl.style.height = '';
+    panelBottomEl.style.flexBasis = '';
+    return;
+  }
+  const left = clamp(panelLayout.leftWidth ?? 60, PANEL_LAYOUT_LIMITS.minLeft, PANEL_LAYOUT_LIMITS.maxLeft);
+  panelLayout.leftWidth = left;
+  panelLeftEl.style.flexBasis = `${left}%`;
+  panelRightEl.style.flexBasis = `${Math.max(PANEL_LAYOUT_LIMITS.minLeft, 100 - left)}%`;
+  const bottomHeight = clamp(panelLayout.bottomHeight ?? 320, PANEL_LAYOUT_LIMITS.minBottom, PANEL_LAYOUT_LIMITS.maxBottom);
+  panelLayout.bottomHeight = bottomHeight;
+  panelBottomEl.style.height = `${bottomHeight}px`;
+  panelBottomEl.style.flexBasis = `${bottomHeight}px`;
+}
+
+function isTopPanelsStacked() {
+  if (!topPanelsEl) return true;
+  const style = window.getComputedStyle(topPanelsEl);
+  return style.flexDirection !== 'row';
+}
+
+function setupPanelResizers() {
+  if (sideResizer) {
+    sideResizer.addEventListener('pointerdown', (e) => startPanelResize('x', e));
+    sideResizer.addEventListener('keydown', (e) => handleResizerKeyboard(e, 'x'));
+  }
+  if (bottomResizer) {
+    bottomResizer.addEventListener('pointerdown', (e) => startPanelResize('y', e));
+    bottomResizer.addEventListener('keydown', (e) => handleResizerKeyboard(e, 'y'));
+  }
+  window.addEventListener('resize', applyPanelLayout);
+}
+
+function startPanelResize(axis, event) {
+  if (axis === 'x' && isTopPanelsStacked()) return;
+  if ((axis === 'x' && (!panelLeftEl || !panelRightEl)) || (axis === 'y' && !panelBottomEl)) return;
+  event.preventDefault();
+  panelResizeState.activeAxis = axis;
+  if (axis === 'x') {
+    panelResizeState.startX = event.clientX;
+    panelResizeState.startLeftWidth = panelLeftEl.getBoundingClientRect().width;
+    panelResizeState.totalWidth = topPanelsEl.getBoundingClientRect().width;
+    document.body.classList.add('resizing-x');
+  } else {
+    panelResizeState.startY = event.clientY;
+    panelResizeState.startBottomHeight = panelBottomEl.getBoundingClientRect().height;
+    document.body.classList.add('resizing-y');
+  }
+  window.addEventListener('pointermove', onPanelResizeMove);
+  window.addEventListener('pointerup', stopPanelResize);
+  window.addEventListener('pointercancel', stopPanelResize);
+}
+
+function onPanelResizeMove(event) {
+  if (!panelResizeState.activeAxis) return;
+  if (panelResizeState.activeAxis === 'x') {
+    const delta = event.clientX - panelResizeState.startX;
+    const totalWidth = panelResizeState.totalWidth || topPanelsEl.getBoundingClientRect().width;
+    if (totalWidth <= 0) return;
+    let percent = ((panelResizeState.startLeftWidth + delta) / totalWidth) * 100;
+    percent = clamp(percent, PANEL_LAYOUT_LIMITS.minLeft, PANEL_LAYOUT_LIMITS.maxLeft);
+    panelLayout.leftWidth = percent;
+  } else if (panelResizeState.activeAxis === 'y') {
+    const deltaY = event.clientY - panelResizeState.startY;
+    let height = panelResizeState.startBottomHeight - deltaY;
+    height = clamp(height, PANEL_LAYOUT_LIMITS.minBottom, PANEL_LAYOUT_LIMITS.maxBottom);
+    panelLayout.bottomHeight = height;
+  }
+  applyPanelLayout();
+}
+
+function stopPanelResize() {
+  if (!panelResizeState.activeAxis) return;
+  document.body.classList.remove('resizing-x', 'resizing-y');
+  panelResizeState.activeAxis = null;
+  window.removeEventListener('pointermove', onPanelResizeMove);
+  window.removeEventListener('pointerup', stopPanelResize);
+  window.removeEventListener('pointercancel', stopPanelResize);
+  savePanelLayout();
+}
+
+function handleResizerKeyboard(event, axis) {
+  const key = event.key;
+  const isHorizontal = axis === 'x';
+  if (isHorizontal && isTopPanelsStacked()) return;
+  if (isHorizontal && (key === 'ArrowLeft' || key === 'ArrowRight')) {
+    const step = event.shiftKey ? 5 : 2;
+    const delta = key === 'ArrowLeft' ? -step : step;
+    panelLayout.leftWidth = clamp(panelLayout.leftWidth + delta, PANEL_LAYOUT_LIMITS.minLeft, PANEL_LAYOUT_LIMITS.maxLeft);
+    applyPanelLayout();
+    savePanelLayout();
+    event.preventDefault();
+  } else if (!isHorizontal && (key === 'ArrowUp' || key === 'ArrowDown')) {
+    const stepPx = event.shiftKey ? 40 : 15;
+    const delta = key === 'ArrowUp' ? -stepPx : stepPx;
+    panelLayout.bottomHeight = clamp(panelLayout.bottomHeight + delta, PANEL_LAYOUT_LIMITS.minBottom, PANEL_LAYOUT_LIMITS.maxBottom);
+    applyPanelLayout();
+    savePanelLayout();
+    event.preventDefault();
+  }
+}
+
+// ============================================================
 // Custom colors functions
 // ============================================================
 
@@ -2857,3 +3548,104 @@ function saveChartTheme() {
 
 // Load custom colors on init
 loadCustomColors();
+loadPlotThemeSettings();
+loadChartFormatting();
+syncChartFormattingInputs();
+bindChartFormattingInputs();
+loadPanelLayout();
+applyPanelLayout();
+setupPanelResizers();
+
+function onPlotThemeChange() {
+  chartPlotTheme = chartPlotThemeSelect.value || 'default';
+  savePlotThemeSettings();
+  if (currentView === 'chart') renderChart();
+}
+
+function loadPlotThemeSettings() {
+  try {
+    const saved = localStorage.getItem(CHART_PLOT_THEME_STORAGE_KEY);
+    if (saved && (saved === 'default' || CHART_PLOT_THEMES[saved])) {
+      chartPlotTheme = saved;
+    }
+  } catch (e) { /* ignore */ }
+  if (chartPlotThemeSelect) {
+    chartPlotThemeSelect.value = chartPlotTheme;
+  }
+}
+
+function savePlotThemeSettings() {
+  try {
+    localStorage.setItem(CHART_PLOT_THEME_STORAGE_KEY, chartPlotTheme);
+  } catch (e) { /* storage unavailable */ }
+}
+
+function loadChartFormatting() {
+  try {
+    const saved = localStorage.getItem(CHART_FORMATTING_STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      chartFormatting = { ...DEFAULT_CHART_FORMATTING, ...parsed };
+    }
+  } catch (e) {
+    chartFormatting = { ...DEFAULT_CHART_FORMATTING };
+  }
+}
+
+function saveChartFormatting() {
+  try {
+    localStorage.setItem(CHART_FORMATTING_STORAGE_KEY, JSON.stringify(chartFormatting));
+  } catch (e) { /* storage unavailable */ }
+}
+
+function syncChartFormattingInputs() {
+  chartFormattingInputs.forEach((input) => {
+    const key = input.dataset.chartFormat;
+    if (!key) return;
+    const value = chartFormatting[key];
+    const fallback = value ?? DEFAULT_CHART_FORMATTING[key];
+    if (input.type === 'checkbox') {
+      input.checked = Boolean(fallback);
+    } else if (input.type === 'number') {
+      input.value = fallback ?? '';
+    } else {
+      input.value = fallback ?? '';
+    }
+  });
+}
+
+function bindChartFormattingInputs() {
+  chartFormattingInputs.forEach((input) => {
+    const handler = () => handleChartFormattingInputChange(input);
+    if (input.type === 'checkbox' || input.tagName === 'SELECT') {
+      input.addEventListener('change', handler);
+    } else {
+      input.addEventListener('input', handler);
+    }
+  });
+}
+
+function handleChartFormattingInputChange(input) {
+  const key = input.dataset.chartFormat;
+  if (!key) return;
+  let value;
+  if (input.type === 'checkbox') {
+    value = input.checked;
+  } else if (input.type === 'number') {
+    if (OPTIONAL_NUMERIC_FORMAT_FIELDS.has(key)) {
+      value = input.value === '' ? '' : Number(input.value);
+    } else {
+      value = input.value === '' ? DEFAULT_CHART_FORMATTING[key] : Number(input.value);
+    }
+  } else if (input.tagName === 'SELECT') {
+    value = input.value;
+  } else {
+    value = input.value;
+  }
+  chartFormatting[key] = value;
+  if (input.type === 'number' && input.value === '') {
+    input.value = chartFormatting[key];
+  }
+  saveChartFormatting();
+  if (currentView === 'chart') renderChart();
+}

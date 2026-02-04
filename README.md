@@ -61,9 +61,12 @@ Pre-built annotation templates for common experimental layouts:
 Interactive data visualization with publication-quality export:
 - **Chart Types**: Bar, Line, Scatter, Box Plot, Violin Plot, Heatmap, Pie
 - **Multi-level Grouping**: Up to 3 grouping levels for complex experiments
+- **Grouped Axes**: Bar charts render secondary/tertiary group levels as nested x-axis tiers (GraphPad-style) with automatic annotations instead of extra colors
 - **Aggregation**: Count, Sum, Mean, Median, Min, Max
 - **Error Bars**: Standard Deviation (SD) or Standard Error of Mean (SEM)
 - **Color Themes**: Default, Colorblind-safe, Pastel, Nature, Corporate, Viridis, or Custom
+- **Plot Themes & Formatting**: GraphPad-inspired presets plus controls for titles, axis labels, tick fonts/colors, gridlines, and legend placement
+- **Axis Controls**: Toggle linear/log scales, pin Y-axis min/max, and set manual tick spacing for bar plots
 - **Custom Colors**: Define your own color palette with a color picker
 - **Data Source**: Visualize all wells or only selected wells
 - **Export**: PNG, SVG, WebP via Plotly toolbar (perfect for presentations)
@@ -73,6 +76,7 @@ Interactive data visualization with publication-quality export:
 - Undo/Redo with 50-step history (Ctrl+Z/Y)
 - Auto-save to localStorage
 - Right-click context menu
+- Drag-to-resize panels (plate vs annotations vs data view)
 - Toast notifications
 - Responsive layout
 
