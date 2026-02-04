@@ -2742,12 +2742,15 @@ function buildBarOrLineTraces(grouped, groupKeys, type, groupingMeta = {}) {
         return match ? match.value : 0;
       });
 
+      const offsetGroup = hasPrimary ? primaryLabel : 'All wells';
       const trace = {
         x: multiX,
         y: yVals,
         type: 'bar',
         name: hasPrimary ? primaryLabel : 'All wells',
-        marker: { color: colors[idx] }
+        marker: { color: colors[idx] },
+        offsetgroup: offsetGroup,
+        legendgroup: offsetGroup
       };
 
       if (chartErrorBars !== 'none' && chartAggregation === 'mean') {
@@ -3260,14 +3263,18 @@ function applyChartFormattingOptions(layout, options) {
     const tierLabels = [];
     if (axisTierKeys.secondary) tierLabels.push(axisTierKeys.secondary);
     if (axisTierKeys.tertiary) tierLabels.push(axisTierKeys.tertiary);
+    const count = tierLabels.length;
     tierLabels.forEach((label, idx) => {
+      const offset = 0.05;
+      const baseOffset = 0.1;
+      const yPos = -baseOffset - ((count - 1 - idx) * offset);
       layout.annotations.push({
         text: label,
         xref: 'paper',
         x: 0,
         xanchor: 'left',
         yref: 'paper',
-        y: -0.1 - (idx * 0.05),
+        y: yPos,
         showarrow: false,
         font: { size: 11, color: layout.font.color },
         align: 'left'
