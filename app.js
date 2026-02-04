@@ -113,6 +113,7 @@ let dragStartPos = null;
 let dragRect = null;
 
 // ---- DOM refs ----
+const mainLayoutEl = document.getElementById('main-layout');
 const formatSelect = document.getElementById('plate-format');
 const colorBySelect = document.getElementById('color-by');
 const searchInput = document.getElementById('search-input');
@@ -193,6 +194,7 @@ const panelRightEl = document.getElementById('panel-right');
 const panelBottomEl = document.getElementById('panel-bottom');
 const sideResizer = document.getElementById('side-resizer');
 const bottomResizer = document.getElementById('bottom-resizer');
+const bottomResizerTail = document.getElementById('bottom-resizer-tail');
 
 // Context menu state
 let contextWell = null;
@@ -210,7 +212,7 @@ let chartTheme = 'default';
 let chartErrorBars = 'none';
 let chartDataSource = 'all';
 let chartPlotTheme = 'default';
-let panelLayout = { leftWidth: 60, bottomHeight: 320 };
+let panelLayout = { leftWidth: 60, bottomHeight: 320, containerHeight: null };
 const DEFAULT_CHART_FORMATTING = {
   title: '',
   xLabel: '',
@@ -240,13 +242,17 @@ const panelResizeState = {
   startY: 0,
   startLeftWidth: 0,
   totalWidth: 0,
-  startBottomHeight: 0
+  startBottomHeight: 0,
+  startMainLayoutHeight: 0,
+  mode: null
 };
 const PANEL_LAYOUT_LIMITS = {
   minLeft: 20,
   maxLeft: 80,
   minBottom: 200,
-  maxBottom: 900
+  maxBottom: 900,
+  minContainer: 400,
+  maxContainer: 2000
 };
 let customChartColors = [...CHART_COLOR_THEMES.default]; // Default custom colors
 
@@ -3311,6 +3317,7 @@ function loadPanelLayout() {
       const parsed = JSON.parse(saved);
       if (typeof parsed.leftWidth === 'number') panelLayout.leftWidth = parsed.leftWidth;
       if (typeof parsed.bottomHeight === 'number') panelLayout.bottomHeight = parsed.bottomHeight;
+      if (typeof parsed.containerHeight === 'number') panelLayout.containerHeight = parsed.containerHeight;
     }
   } catch (e) { /* ignore invalid layout */ }
 }
@@ -3323,7 +3330,17 @@ function savePanelLayout() {
 
 function applyPanelLayout() {
   if (!panelLeftEl || !panelRightEl || !panelBottomEl || !topPanelsEl) return;
-  if (isTopPanelsStacked()) {
+  const stacked = isTopPanelsStacked();
+  if (mainLayoutEl) {
+    if (stacked || !Number.isFinite(panelLayout.containerHeight)) {
+      mainLayoutEl.style.height = '';
+    } else {
+      const layoutHeight = clamp(panelLayout.containerHeight, PANEL_LAYOUT_LIMITS.minContainer, PANEL_LAYOUT_LIMITS.maxContainer);
+      panelLayout.containerHeight = layoutHeight;
+      mainLayoutEl.style.height = `${layoutHeight}px`;
+    }
+  }
+  if (stacked) {
     panelLeftEl.style.flexBasis = '';
     panelRightEl.style.flexBasis = '';
     panelBottomEl.style.height = '';
@@ -3352,17 +3369,23 @@ function setupPanelResizers() {
     sideResizer.addEventListener('keydown', (e) => handleResizerKeyboard(e, 'x'));
   }
   if (bottomResizer) {
-    bottomResizer.addEventListener('pointerdown', (e) => startPanelResize('y', e));
+    bottomResizer.addEventListener('pointerdown', (e) => startPanelResize('y', e, { mode: 'split' }));
     bottomResizer.addEventListener('keydown', (e) => handleResizerKeyboard(e, 'y'));
+  }
+  if (bottomResizerTail) {
+    bottomResizerTail.addEventListener('pointerdown', (e) => startPanelResize('y', e, { mode: 'tail' }));
+    bottomResizerTail.addEventListener('keydown', (e) => handleResizerKeyboard(e, 'y', { mode: 'tail' }));
   }
   window.addEventListener('resize', applyPanelLayout);
 }
 
-function startPanelResize(axis, event) {
+function startPanelResize(axis, event, options = {}) {
   if (axis === 'x' && isTopPanelsStacked()) return;
   if ((axis === 'x' && (!panelLeftEl || !panelRightEl)) || (axis === 'y' && !panelBottomEl)) return;
+  const mode = options.mode || (axis === 'x' ? 'side' : 'split');
   event.preventDefault();
   panelResizeState.activeAxis = axis;
+  panelResizeState.mode = mode;
   if (axis === 'x') {
     panelResizeState.startX = event.clientX;
     panelResizeState.startLeftWidth = panelLeftEl.getBoundingClientRect().width;
@@ -3371,6 +3394,8 @@ function startPanelResize(axis, event) {
   } else {
     panelResizeState.startY = event.clientY;
     panelResizeState.startBottomHeight = panelBottomEl.getBoundingClientRect().height;
+    const currentLayoutHeight = mainLayoutEl ? mainLayoutEl.getBoundingClientRect().height : panelLayout.containerHeight;
+    panelResizeState.startMainLayoutHeight = Number.isFinite(currentLayoutHeight) ? currentLayoutHeight : 0;
     document.body.classList.add('resizing-y');
   }
   window.addEventListener('pointermove', onPanelResizeMove);
@@ -3388,10 +3413,15 @@ function onPanelResizeMove(event) {
     percent = clamp(percent, PANEL_LAYOUT_LIMITS.minLeft, PANEL_LAYOUT_LIMITS.maxLeft);
     panelLayout.leftWidth = percent;
   } else if (panelResizeState.activeAxis === 'y') {
+    const mode = panelResizeState.mode || 'split';
     const deltaY = event.clientY - panelResizeState.startY;
-    let height = panelResizeState.startBottomHeight - deltaY;
-    height = clamp(height, PANEL_LAYOUT_LIMITS.minBottom, PANEL_LAYOUT_LIMITS.maxBottom);
-    panelLayout.bottomHeight = height;
+    if (mode === 'tail') {
+      adjustBottomAndContainer(deltaY);
+    } else {
+      let height = panelResizeState.startBottomHeight - deltaY;
+      height = clamp(height, PANEL_LAYOUT_LIMITS.minBottom, PANEL_LAYOUT_LIMITS.maxBottom);
+      panelLayout.bottomHeight = height;
+    }
   }
   applyPanelLayout();
 }
@@ -3400,15 +3430,18 @@ function stopPanelResize() {
   if (!panelResizeState.activeAxis) return;
   document.body.classList.remove('resizing-x', 'resizing-y');
   panelResizeState.activeAxis = null;
+  panelResizeState.mode = null;
+  panelResizeState.startMainLayoutHeight = 0;
   window.removeEventListener('pointermove', onPanelResizeMove);
   window.removeEventListener('pointerup', stopPanelResize);
   window.removeEventListener('pointercancel', stopPanelResize);
   savePanelLayout();
 }
 
-function handleResizerKeyboard(event, axis) {
+function handleResizerKeyboard(event, axis, options = {}) {
   const key = event.key;
   const isHorizontal = axis === 'x';
+  const mode = options.mode || (isHorizontal ? 'side' : 'split');
   if (isHorizontal && isTopPanelsStacked()) return;
   if (isHorizontal && (key === 'ArrowLeft' || key === 'ArrowRight')) {
     const step = event.shiftKey ? 5 : 2;
@@ -3420,10 +3453,49 @@ function handleResizerKeyboard(event, axis) {
   } else if (!isHorizontal && (key === 'ArrowUp' || key === 'ArrowDown')) {
     const stepPx = event.shiftKey ? 40 : 15;
     const delta = key === 'ArrowUp' ? -stepPx : stepPx;
-    panelLayout.bottomHeight = clamp(panelLayout.bottomHeight + delta, PANEL_LAYOUT_LIMITS.minBottom, PANEL_LAYOUT_LIMITS.maxBottom);
+    if (mode === 'tail') {
+      adjustBottomAndContainer(delta, { useLiveStart: true });
+    } else {
+      panelLayout.bottomHeight = clamp(panelLayout.bottomHeight + delta, PANEL_LAYOUT_LIMITS.minBottom, PANEL_LAYOUT_LIMITS.maxBottom);
+    }
     applyPanelLayout();
     savePanelLayout();
     event.preventDefault();
+  }
+}
+
+function adjustBottomAndContainer(deltaPx, options = {}) {
+  const useLiveStart = Boolean(options.useLiveStart);
+  const baseBottom = useLiveStart ? panelLayout.bottomHeight : panelResizeState.startBottomHeight;
+  const bottomStart = Number.isFinite(baseBottom) ? baseBottom : panelLayout.bottomHeight || 0;
+  const liveContainer = Number.isFinite(panelLayout.containerHeight)
+    ? panelLayout.containerHeight
+    : (mainLayoutEl ? mainLayoutEl.getBoundingClientRect().height : 0);
+  const storedContainer = Number.isFinite(panelResizeState.startMainLayoutHeight)
+    ? panelResizeState.startMainLayoutHeight
+    : liveContainer;
+  const containerStart = useLiveStart ? liveContainer : storedContainer;
+  let delta = deltaPx;
+  if (delta > 0) {
+    const maxDelta = Math.min(
+      PANEL_LAYOUT_LIMITS.maxBottom - bottomStart,
+      PANEL_LAYOUT_LIMITS.maxContainer - containerStart
+    );
+    delta = Math.min(delta, maxDelta);
+  } else {
+    const minDelta = Math.max(
+      PANEL_LAYOUT_LIMITS.minBottom - bottomStart,
+      PANEL_LAYOUT_LIMITS.minContainer - containerStart
+    );
+    delta = Math.max(delta, minDelta);
+  }
+  const newBottom = clamp(bottomStart + delta, PANEL_LAYOUT_LIMITS.minBottom, PANEL_LAYOUT_LIMITS.maxBottom);
+  const appliedDelta = newBottom - bottomStart;
+  panelLayout.bottomHeight = newBottom;
+  const containerBaseline = Number.isFinite(containerStart) ? containerStart : liveContainer;
+  if (Number.isFinite(containerBaseline)) {
+    const newContainer = clamp(containerBaseline + appliedDelta, PANEL_LAYOUT_LIMITS.minContainer, PANEL_LAYOUT_LIMITS.maxContainer);
+    panelLayout.containerHeight = newContainer;
   }
 }
 
