@@ -1558,18 +1558,21 @@ function updateButtonStates() {
 // Helpers
 // ============================================================
 function escapeAttr(s) {
-  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const value = String(s ?? '');
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function escapeHTML(s) {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const value = String(s ?? '');
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function csvEscape(s) {
-  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-    return '"' + s.replace(/"/g, '""') + '"';
+  const value = String(s ?? '');
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return '"' + value.replace(/"/g, '""') + '"';
   }
-  return s;
+  return value;
 }
 
 function parseWellId(wellId) {
@@ -2290,6 +2293,7 @@ function onChartControlChange() {
   chartYAxis = chartYAxisSelect.value;
   chartGroup1 = chartGroup1Select.value;
   chartGroup2 = chartGroup2Select.value;
+  sanitizeChartGroupingSelections();
   chartAggregation = chartAggregationSelect.value;
   chartTheme = chartThemeSelect.value;
   chartErrorBars = chartErrorBarsSelect.value;
@@ -2348,6 +2352,15 @@ function updateChartControls() {
   chartYAxis = chartYAxisSelect.value;
   chartGroup1 = chartGroup1Select.value;
   chartGroup2 = chartGroup2Select.value;
+  sanitizeChartGroupingSelections();
+}
+
+function sanitizeChartGroupingSelections() {
+  if (!chartGroup1 || !chartGroup2) return;
+  if (chartGroup1 !== chartGroup2) return;
+  chartGroup2 = '';
+  if (chartGroup2Select) chartGroup2Select.value = '';
+  showToast('Group 2 cannot match Group By and was cleared.', 'warning', 3000);
 }
 
 function getChartData(source) {
