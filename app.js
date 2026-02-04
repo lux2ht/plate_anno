@@ -2700,12 +2700,7 @@ function buildBarOrLineTraces(grouped, groupKeys, type, groupingMeta = {}) {
               (!hasTertiary || terLabel === ter);
           });
           if (!matchExists) return;
-          const parts = [];
-          if (hasSecondary) parts.push(sec);
-          if (hasTertiary) parts.push(ter);
-          parts.push(base);
           combinations.push({
-            parts,
             base,
             secondary: sec,
             tertiary: ter
@@ -2718,7 +2713,14 @@ function buildBarOrLineTraces(grouped, groupKeys, type, groupingMeta = {}) {
       ? uniqueValues(grouped.map(g => normalize(g.labelMap[groupingMeta.primary])))
       : ['All wells'];
     const colors = getThemeColors(primaryValues.length || 1);
-    const multiX = combinations.map(c => c.parts);
+    const multiX = [];
+    if (hasSecondary) {
+      multiX.push(combinations.map(c => c.secondary));
+    }
+    if (hasTertiary) {
+      multiX.push(combinations.map(c => c.tertiary));
+    }
+    multiX.push(combinations.map(c => c.base));
     const lookup = new Map();
     grouped.forEach(g => {
       const key = [
