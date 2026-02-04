@@ -99,7 +99,7 @@ const includeEmptyCheckbox = document.getElementById('include-empty');
 
 // Context menu state
 let contextWell = null;
-let currentView = 'csv'; // 'csv' or 'table'
+let currentView = 'table'; // 'table', 'csv', or 'wide'
 
 // ---- Init ----
 loadState();
