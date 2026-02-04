@@ -160,7 +160,6 @@ const chartXAxisSelect = document.getElementById('chart-x-axis');
 const chartYAxisSelect = document.getElementById('chart-y-axis');
 const chartGroup1Select = document.getElementById('chart-group1');
 const chartGroup2Select = document.getElementById('chart-group2');
-const chartGroup3Select = document.getElementById('chart-group3');
 const chartAggregationSelect = document.getElementById('chart-aggregation');
 const chartThemeSelect = document.getElementById('chart-theme');
 const chartErrorBarsSelect = document.getElementById('chart-error-bars');
@@ -206,7 +205,6 @@ let chartXAxis = '';
 let chartYAxis = '_count';
 let chartGroup1 = '';
 let chartGroup2 = '';
-let chartGroup3 = '';
 let chartAggregation = 'count';
 let chartTheme = 'default';
 let chartErrorBars = 'none';
@@ -293,7 +291,6 @@ chartXAxisSelect.addEventListener('change', onChartControlChange);
 chartYAxisSelect.addEventListener('change', onChartControlChange);
 chartGroup1Select.addEventListener('change', onChartControlChange);
 chartGroup2Select.addEventListener('change', onChartControlChange);
-chartGroup3Select.addEventListener('change', onChartControlChange);
 chartAggregationSelect.addEventListener('change', onChartControlChange);
 chartErrorBarsSelect.addEventListener('change', onChartControlChange);
 document.querySelectorAll('input[name="chart-source"]').forEach(radio => {
@@ -2293,7 +2290,6 @@ function onChartControlChange() {
   chartYAxis = chartYAxisSelect.value;
   chartGroup1 = chartGroup1Select.value;
   chartGroup2 = chartGroup2Select.value;
-  chartGroup3 = chartGroup3Select.value;
   chartAggregation = chartAggregationSelect.value;
   chartTheme = chartThemeSelect.value;
   chartErrorBars = chartErrorBarsSelect.value;
@@ -2335,7 +2331,7 @@ function updateChartControls() {
   }
 
   // Update group selects
-  [chartGroup1Select, chartGroup2Select, chartGroup3Select].forEach((sel, idx) => {
+  [chartGroup1Select, chartGroup2Select].forEach((sel) => {
     const current = sel.value;
     sel.innerHTML = '<option value="">(none)</option>';
     for (const k of actualKeys) {
@@ -2352,7 +2348,6 @@ function updateChartControls() {
   chartYAxis = chartYAxisSelect.value;
   chartGroup1 = chartGroup1Select.value;
   chartGroup2 = chartGroup2Select.value;
-  chartGroup3 = chartGroup3Select.value;
 }
 
 function getChartData(source) {
@@ -2489,7 +2484,7 @@ function renderChart() {
     return;
   }
 
-  const groupKeys = [chartGroup1, chartGroup2, chartGroup3].filter(Boolean);
+  const groupKeys = [chartGroup1, chartGroup2].filter(Boolean);
   const grouped = groupData(data, chartXAxis, groupKeys, chartYAxis, chartAggregation);
 
   if (grouped.length === 0) {
@@ -2555,7 +2550,7 @@ function renderChart() {
       const barResult = buildBarOrLineTraces(grouped, groupKeys, chartType, {
         primary: chartGroup1 || null,
         secondary: chartGroup2 || null,
-        tertiary: chartGroup3 || null
+        tertiary: null
       });
       traces = barResult.traces;
       multiCategoryAxis = barResult.multiCategory;

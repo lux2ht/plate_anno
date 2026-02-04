@@ -60,8 +60,8 @@ Pre-built annotation templates for common experimental layouts:
 ### Chart Panel (powered by Plotly.js)
 Interactive data visualization with publication-quality export:
 - **Chart Types**: Bar, Line, Scatter, Box Plot, Violin Plot, Heatmap, Pie
-- **Multi-level Grouping**: Up to 3 grouping levels for complex experiments
-- **Grouped Axes**: Bar charts render secondary/tertiary group levels as nested x-axis tiers (GraphPad-style) with automatic annotations instead of extra colors
+- **Multi-level Grouping**: Up to 2 grouping levels for complex experiments
+- **Grouped Axes**: Bar charts render a secondary group level as nested x-axis tiers (GraphPad-style) with automatic annotations instead of extra colors
 - **Aggregation**: Count, Sum, Mean, Median, Min, Max
 - **Error Bars**: Standard Deviation (SD) or Standard Error of Mean (SEM)
 - **Color Themes**: Default, Colorblind-safe, Pastel, Nature, Corporate, Viridis, or Custom
