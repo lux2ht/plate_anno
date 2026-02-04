@@ -1,0 +1,17 @@
+Well,AnnotationKey,AnnotationValue
+A1,Treatment,Control
+A1,Cell Line,HeLa
+A2,Treatment,Drug A
+A2,Cell Line,HeLa
+A2,Concentration,1 uM
+A3,Treatment,Drug A
+A3,Cell Line,HeLa
+A3,Concentration,10 uM
+B1,Treatment,Control
+B1,Cell Line,HEK293
+B2,Treatment,Drug A
+B2,Cell Line,HEK293
+B2,Concentration,1 uM
+B3,Treatment,Drug A
+B3,Cell Line,HEK293
+B3,Concentration,10 uM

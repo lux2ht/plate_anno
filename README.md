@@ -119,6 +119,24 @@ Annotations are stored as key-value pairs per well:
 }
 ```
 
+## CSV Import Format
+
+The import function expects a long-format CSV with three required columns:
+
+```csv
+Well,AnnotationKey,AnnotationValue
+A1,Treatment,DMSO
+A1,Replicate,1
+A2,Treatment,Drug X
+A2,Concentration,10 uM
+```
+
+- Column headers are case-insensitive
+- Multiple rows with the same Well ID add multiple annotations
+- Plate format is auto-detected from the data
+
+See the [`examples/`](examples/) folder for sample CSV files for each plate format.
+
 ## Browser Compatibility
 
 Works in all modern browsers (Chrome, Firefox, Safari, Edge). No Internet Explorer support.

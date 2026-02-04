@@ -1,0 +1,49 @@
+Well,AnnotationKey,AnnotationValue
+A1,Compound,DMSO
+A1,Type,Negative Control
+A2,Compound,Staurosporine
+A2,Type,Positive Control
+A3,Compound,Compound A
+A3,Concentration,100 nM
+A4,Compound,Compound A
+A4,Concentration,10 nM
+A5,Compound,Compound A
+A5,Concentration,1 nM
+A6,Compound,Compound A
+A6,Concentration,0.1 nM
+B1,Compound,DMSO
+B1,Type,Negative Control
+B2,Compound,Staurosporine
+B2,Type,Positive Control
+B3,Compound,Compound B
+B3,Concentration,100 nM
+B4,Compound,Compound B
+B4,Concentration,10 nM
+B5,Compound,Compound B
+B5,Concentration,1 nM
+B6,Compound,Compound B
+B6,Concentration,0.1 nM
+C1,Compound,DMSO
+C1,Type,Negative Control
+C2,Compound,Staurosporine
+C2,Type,Positive Control
+C3,Compound,Compound C
+C3,Concentration,100 nM
+C4,Compound,Compound C
+C4,Concentration,10 nM
+C5,Compound,Compound C
+C5,Concentration,1 nM
+C6,Compound,Compound C
+C6,Concentration,0.1 nM
+D1,Compound,DMSO
+D1,Type,Negative Control
+D2,Compound,Staurosporine
+D2,Type,Positive Control
+D3,Compound,Compound D
+D3,Concentration,100 nM
+D4,Compound,Compound D
+D4,Concentration,10 nM
+D5,Compound,Compound D
+D5,Concentration,1 nM
+D6,Compound,Compound D
+D6,Concentration,0.1 nM

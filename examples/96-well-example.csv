@@ -1,0 +1,161 @@
+Well,AnnotationKey,AnnotationValue
+A1,Type,Positive Control
+A2,Type,Positive Control
+A3,Compound,Aspirin
+A3,Concentration,100 uM
+A4,Compound,Aspirin
+A4,Concentration,33.3 uM
+A5,Compound,Aspirin
+A5,Concentration,11.1 uM
+A6,Compound,Aspirin
+A6,Concentration,3.7 uM
+A7,Compound,Aspirin
+A7,Concentration,1.23 uM
+A8,Compound,Aspirin
+A8,Concentration,0.41 uM
+A9,Compound,Aspirin
+A9,Concentration,0.14 uM
+A10,Compound,Aspirin
+A10,Concentration,0.05 uM
+A11,Type,Negative Control
+A12,Type,Negative Control
+B1,Type,Positive Control
+B2,Type,Positive Control
+B3,Compound,Ibuprofen
+B3,Concentration,100 uM
+B4,Compound,Ibuprofen
+B4,Concentration,33.3 uM
+B5,Compound,Ibuprofen
+B5,Concentration,11.1 uM
+B6,Compound,Ibuprofen
+B6,Concentration,3.7 uM
+B7,Compound,Ibuprofen
+B7,Concentration,1.23 uM
+B8,Compound,Ibuprofen
+B8,Concentration,0.41 uM
+B9,Compound,Ibuprofen
+B9,Concentration,0.14 uM
+B10,Compound,Ibuprofen
+B10,Concentration,0.05 uM
+B11,Type,Negative Control
+B12,Type,Negative Control
+C1,Type,Positive Control
+C2,Type,Positive Control
+C3,Compound,Naproxen
+C3,Concentration,100 uM
+C4,Compound,Naproxen
+C4,Concentration,33.3 uM
+C5,Compound,Naproxen
+C5,Concentration,11.1 uM
+C6,Compound,Naproxen
+C6,Concentration,3.7 uM
+C7,Compound,Naproxen
+C7,Concentration,1.23 uM
+C8,Compound,Naproxen
+C8,Concentration,0.41 uM
+C9,Compound,Naproxen
+C9,Concentration,0.14 uM
+C10,Compound,Naproxen
+C10,Concentration,0.05 uM
+C11,Type,Negative Control
+C12,Type,Negative Control
+D1,Type,Positive Control
+D2,Type,Positive Control
+D3,Compound,Celecoxib
+D3,Concentration,100 uM
+D4,Compound,Celecoxib
+D4,Concentration,33.3 uM
+D5,Compound,Celecoxib
+D5,Concentration,11.1 uM
+D6,Compound,Celecoxib
+D6,Concentration,3.7 uM
+D7,Compound,Celecoxib
+D7,Concentration,1.23 uM
+D8,Compound,Celecoxib
+D8,Concentration,0.41 uM
+D9,Compound,Celecoxib
+D9,Concentration,0.14 uM
+D10,Compound,Celecoxib
+D10,Concentration,0.05 uM
+D11,Type,Negative Control
+D12,Type,Negative Control
+E1,Type,Positive Control
+E2,Type,Positive Control
+E3,Compound,Diclofenac
+E3,Concentration,100 uM
+E4,Compound,Diclofenac
+E4,Concentration,33.3 uM
+E5,Compound,Diclofenac
+E5,Concentration,11.1 uM
+E6,Compound,Diclofenac
+E6,Concentration,3.7 uM
+E7,Compound,Diclofenac
+E7,Concentration,1.23 uM
+E8,Compound,Diclofenac
+E8,Concentration,0.41 uM
+E9,Compound,Diclofenac
+E9,Concentration,0.14 uM
+E10,Compound,Diclofenac
+E10,Concentration,0.05 uM
+E11,Type,Negative Control
+E12,Type,Negative Control
+F1,Type,Positive Control
+F2,Type,Positive Control
+F3,Compound,Meloxicam
+F3,Concentration,100 uM
+F4,Compound,Meloxicam
+F4,Concentration,33.3 uM
+F5,Compound,Meloxicam
+F5,Concentration,11.1 uM
+F6,Compound,Meloxicam
+F6,Concentration,3.7 uM
+F7,Compound,Meloxicam
+F7,Concentration,1.23 uM
+F8,Compound,Meloxicam
+F8,Concentration,0.41 uM
+F9,Compound,Meloxicam
+F9,Concentration,0.14 uM
+F10,Compound,Meloxicam
+F10,Concentration,0.05 uM
+F11,Type,Negative Control
+F12,Type,Negative Control
+G1,Type,Positive Control
+G2,Type,Positive Control
+G3,Compound,Piroxicam
+G3,Concentration,100 uM
+G4,Compound,Piroxicam
+G4,Concentration,33.3 uM
+G5,Compound,Piroxicam
+G5,Concentration,11.1 uM
+G6,Compound,Piroxicam
+G6,Concentration,3.7 uM
+G7,Compound,Piroxicam
+G7,Concentration,1.23 uM
+G8,Compound,Piroxicam
+G8,Concentration,0.41 uM
+G9,Compound,Piroxicam
+G9,Concentration,0.14 uM
+G10,Compound,Piroxicam
+G10,Concentration,0.05 uM
+G11,Type,Negative Control
+G12,Type,Negative Control
+H1,Type,Positive Control
+H2,Type,Positive Control
+H3,Compound,Indomethacin
+H3,Concentration,100 uM
+H4,Compound,Indomethacin
+H4,Concentration,33.3 uM
+H5,Compound,Indomethacin
+H5,Concentration,11.1 uM
+H6,Compound,Indomethacin
+H6,Concentration,3.7 uM
+H7,Compound,Indomethacin
+H7,Concentration,1.23 uM
+H8,Compound,Indomethacin
+H8,Concentration,0.41 uM
+H9,Compound,Indomethacin
+H9,Concentration,0.14 uM
+H10,Compound,Indomethacin
+H10,Concentration,0.05 uM
+H11,Type,Negative Control
+H12,Type,Negative Control

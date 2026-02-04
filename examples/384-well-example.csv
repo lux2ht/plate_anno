@@ -1,0 +1,73 @@
+Well,AnnotationKey,AnnotationValue
+A1,Type,DMSO Control
+A2,Type,DMSO Control
+A23,Type,DMSO Control
+A24,Type,DMSO Control
+B1,Type,DMSO Control
+B2,Compound,LIB-0001
+B2,Plate,Screen Plate 1
+B3,Compound,LIB-0002
+B3,Plate,Screen Plate 1
+B4,Compound,LIB-0003
+B4,Plate,Screen Plate 1
+B5,Compound,LIB-0004
+B5,Plate,Screen Plate 1
+B6,Compound,LIB-0005
+B6,Plate,Screen Plate 1
+B7,Compound,LIB-0006
+B7,Plate,Screen Plate 1
+B8,Compound,LIB-0007
+B8,Plate,Screen Plate 1
+B9,Compound,LIB-0008
+B9,Plate,Screen Plate 1
+B10,Compound,LIB-0009
+B10,Plate,Screen Plate 1
+B11,Compound,LIB-0010
+B11,Plate,Screen Plate 1
+B12,Compound,LIB-0011
+B12,Plate,Screen Plate 1
+B13,Compound,LIB-0012
+B13,Plate,Screen Plate 1
+B14,Compound,LIB-0013
+B14,Plate,Screen Plate 1
+B15,Compound,LIB-0014
+B15,Plate,Screen Plate 1
+B16,Compound,LIB-0015
+B16,Plate,Screen Plate 1
+B17,Compound,LIB-0016
+B17,Plate,Screen Plate 1
+B18,Compound,LIB-0017
+B18,Plate,Screen Plate 1
+B19,Compound,LIB-0018
+B19,Plate,Screen Plate 1
+B20,Compound,LIB-0019
+B20,Plate,Screen Plate 1
+B21,Compound,LIB-0020
+B21,Plate,Screen Plate 1
+B22,Compound,LIB-0021
+B22,Plate,Screen Plate 1
+B23,Compound,LIB-0022
+B23,Plate,Screen Plate 1
+B24,Type,DMSO Control
+C1,Type,DMSO Control
+C2,Compound,LIB-0023
+C2,Plate,Screen Plate 1
+C3,Compound,LIB-0024
+C3,Plate,Screen Plate 1
+C4,Compound,LIB-0025
+C4,Plate,Screen Plate 1
+C22,Compound,LIB-0042
+C22,Plate,Screen Plate 1
+C23,Compound,LIB-0043
+C23,Plate,Screen Plate 1
+C24,Type,DMSO Control
+P1,Type,DMSO Control
+P2,Type,Positive Control
+P2,Compound,Staurosporine
+P3,Type,Positive Control
+P3,Compound,Staurosporine
+P22,Type,Positive Control
+P22,Compound,Staurosporine
+P23,Type,Positive Control
+P23,Compound,Staurosporine
+P24,Type,DMSO Control

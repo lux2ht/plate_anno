@@ -1,0 +1,79 @@
+Well,AnnotationKey,AnnotationValue
+A1,Sample,Patient 1
+A1,Timepoint,0h
+A2,Sample,Patient 1
+A2,Timepoint,6h
+A3,Sample,Patient 1
+A3,Timepoint,12h
+A4,Sample,Patient 1
+A4,Timepoint,24h
+A5,Sample,Patient 2
+A5,Timepoint,0h
+A6,Sample,Patient 2
+A6,Timepoint,6h
+A7,Sample,Patient 2
+A7,Timepoint,12h
+A8,Sample,Patient 2
+A8,Timepoint,24h
+B1,Sample,Patient 3
+B1,Timepoint,0h
+B2,Sample,Patient 3
+B2,Timepoint,6h
+B3,Sample,Patient 3
+B3,Timepoint,12h
+B4,Sample,Patient 3
+B4,Timepoint,24h
+B5,Sample,Patient 4
+B5,Timepoint,0h
+B6,Sample,Patient 4
+B6,Timepoint,6h
+B7,Sample,Patient 4
+B7,Timepoint,12h
+B8,Sample,Patient 4
+B8,Timepoint,24h
+C1,Sample,Patient 5
+C1,Timepoint,0h
+C2,Sample,Patient 5
+C2,Timepoint,6h
+C3,Sample,Patient 5
+C3,Timepoint,12h
+C4,Sample,Patient 5
+C4,Timepoint,24h
+C5,Sample,Patient 6
+C5,Timepoint,0h
+C6,Sample,Patient 6
+C6,Timepoint,6h
+C7,Sample,Patient 6
+C7,Timepoint,12h
+C8,Sample,Patient 6
+C8,Timepoint,24h
+D1,Type,Blank
+D2,Type,Blank
+D3,Type,Standard
+D3,Concentration,1000 pg/mL
+D4,Type,Standard
+D4,Concentration,500 pg/mL
+D5,Type,Standard
+D5,Concentration,250 pg/mL
+D6,Type,Standard
+D6,Concentration,125 pg/mL
+D7,Type,Standard
+D7,Concentration,62.5 pg/mL
+D8,Type,Standard
+D8,Concentration,31.25 pg/mL
+E1,Type,QC High
+E2,Type,QC Mid
+E3,Type,QC Low
+E4,Type,Blank
+E5,Type,Blank
+E6,Type,Blank
+E7,Type,Blank
+E8,Type,Blank
+F1,Type,Empty
+F2,Type,Empty
+F3,Type,Empty
+F4,Type,Empty
+F5,Type,Empty
+F6,Type,Empty
+F7,Type,Empty
+F8,Type,Empty

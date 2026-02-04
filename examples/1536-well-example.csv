@@ -1,0 +1,43 @@
+Well,AnnotationKey,AnnotationValue
+A1,Type,Empty
+A2,Type,Empty
+A47,Type,Empty
+A48,Type,Empty
+B1,Type,Empty
+B2,Type,DMSO Control
+B3,Compound,HTS-000001
+B3,Library,Primary Screen
+B4,Compound,HTS-000002
+B4,Library,Primary Screen
+B5,Compound,HTS-000003
+B5,Library,Primary Screen
+B6,Compound,HTS-000004
+B6,Library,Primary Screen
+B7,Compound,HTS-000005
+B7,Library,Primary Screen
+B8,Compound,HTS-000006
+B8,Library,Primary Screen
+B9,Compound,HTS-000007
+B9,Library,Primary Screen
+B10,Compound,HTS-000008
+B10,Library,Primary Screen
+B43,Compound,HTS-000041
+B43,Library,Primary Screen
+B44,Compound,HTS-000042
+B44,Library,Primary Screen
+B45,Compound,HTS-000043
+B45,Library,Primary Screen
+B46,Compound,HTS-000044
+B46,Library,Primary Screen
+B47,Type,DMSO Control
+B48,Type,Empty
+AF1,Type,Empty
+AF2,Type,Positive Control
+AF2,Compound,Reference Inhibitor
+AF3,Type,Positive Control
+AF3,Compound,Reference Inhibitor
+AF46,Type,Positive Control
+AF46,Compound,Reference Inhibitor
+AF47,Type,Positive Control
+AF47,Compound,Reference Inhibitor
+AF48,Type,Empty
